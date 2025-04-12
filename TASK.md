@@ -5,6 +5,7 @@ This document outlines the initial tasks to kick-start the ClaimProcessingAssist
 ## 1. Project Setup (Week 1)
 
 ### Development Environment
+
 - [x] Initialize Git repository
 - [x] Set up Node.js project with TypeScript
 - [ ] Configure ESLint, Prettier, and other dev tools
@@ -12,6 +13,7 @@ This document outlines the initial tasks to kick-start the ClaimProcessingAssist
 - [ ] Set up Docker environment for local development
 
 ### Documentation
+
 - [x] Create project README with setup instructions
 - [ ] Document architecture decisions (ADR)
 - [ ] Set up contribution guidelines
@@ -19,6 +21,7 @@ This document outlines the initial tasks to kick-start the ClaimProcessingAssist
 ## 2. MCP Server Foundation (Week 2)
 
 ### MCP Protocol Implementation
+
 - [ ] Research and understand MCP specification in detail
 - [x] Implement basic MCP server structure
 - [x] Create function schema definitions for claim processing operations
@@ -26,6 +29,7 @@ This document outlines the initial tasks to kick-start the ClaimProcessingAssist
 - [ ] Set up proper error handling and response formatting
 
 ### Supabase Integration
+
 - [ ] Set up Supabase project
 - [ ] Configure authentication
 - [ ] Design initial database schema for claims processing
@@ -35,12 +39,14 @@ This document outlines the initial tasks to kick-start the ClaimProcessingAssist
 ## 3. Core Data Models (Week 3)
 
 ### Type Definitions
+
 - [x] Define TypeScript interfaces for all core entities
 - [x] Implement Zod schemas for runtime validation
 - [ ] Create DTO (Data Transfer Object) models for API interactions
 - [ ] Document data model relationships
 
 ### Database Implementation
+
 - [ ] Implement Claims table and relations
 - [ ] Create Policies table and relations
 - [ ] Set up Documents storage structure
@@ -50,6 +56,7 @@ This document outlines the initial tasks to kick-start the ClaimProcessingAssist
 ## 4. Basic Claim Processing Logic (Week 4)
 
 ### Claim Validation
+
 - [ ] Implement basic claim validation rules
 - [ ] Create validation rule engine
 - [ ] Design validation error reporting
@@ -57,6 +64,7 @@ This document outlines the initial tasks to kick-start the ClaimProcessingAssist
 - [ ] Create claim processing workflows
 
 ### MCP Function Implementation
+
 - [ ] Implement "submitClaim" function
 - [ ] Implement "validateClaim" function
 - [ ] Implement "getClaimStatus" function
@@ -66,12 +74,14 @@ This document outlines the initial tasks to kick-start the ClaimProcessingAssist
 ## 5. Testing Infrastructure (Week 5)
 
 ### Test Setup
+
 - [ ] Set up Jest for unit testing
 - [ ] Create test database configuration
 - [ ] Implement test fixtures and factories
 - [ ] Set up GitHub Actions for CI/CD
 
 ### Initial Tests
+
 - [ ] Write tests for MCP protocol handlers
 - [ ] Create tests for claim validation rules
 - [ ] Implement integration tests for Supabase
@@ -80,12 +90,14 @@ This document outlines the initial tasks to kick-start the ClaimProcessingAssist
 ## 6. First Integration (Week 6)
 
 ### Integration with AI Tools
+
 - [ ] Test integration with Claude or ChatGPT
 - [ ] Document example prompts and interactions
 - [ ] Refine function definitions based on real usage
 - [ ] Create demo scenarios
 
 ### Documentation & Review
+
 - [ ] Create user documentation for initial version
 - [ ] Review and update project planning
 - [ ] Plan for next phase development

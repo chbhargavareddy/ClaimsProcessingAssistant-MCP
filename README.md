@@ -20,17 +20,20 @@ This is a Model Context Protocol (MCP) server that provides claims processing ca
 ## Setup Instructions
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/yourusername/ClaimsProcessingAssistant-MCP.git
    cd ClaimsProcessingAssistant-MCP
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Configure environment variables:
+
    - Copy `.env.example` to `.env`
    - Update the following variables in `.env`:
      - `SUPABASE_URL`: Your Supabase project URL
@@ -44,11 +47,13 @@ This is a Model Context Protocol (MCP) server that provides claims processing ca
 ## Running the Server
 
 ### Development Mode
+
 ```bash
 npm run dev
 ```
 
 ### Production Mode
+
 ```bash
 npm run build
 npm start

@@ -1,1 +1,1 @@
-# ClaimsProcessingAssistant-MCP
+# Claims Processing Assistant MCP Server\n\nThis is a Model Context Protocol (MCP) server that provides claims processing capabilities through integration with a Supabase database.\n\nSee documentation for setup and usage instructions.

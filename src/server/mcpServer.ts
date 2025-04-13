@@ -35,8 +35,16 @@ export class MCPServer extends EventEmitter {
         throw new Error(`Function ${call.functionName} not found`);
       }
 
-      // Execute the function
-      const result = await handler(call.parameters);
+      // Set user context from auth token
+      const context = {
+        user: {
+          id: call.auth.token, // Using token as user ID for now
+          token: call.auth.token
+        }
+      };
+
+      // Execute the function with context
+      const result = await handler(call.parameters, context);
 
       // Return success response
       return {

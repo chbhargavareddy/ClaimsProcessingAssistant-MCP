@@ -1,15 +1,20 @@
-import { submitClaimFunction, validateClaimFunction, getClaimStatusFunction, listClaimsFunction } from '../../functions/claims';
+import {
+  submitClaimFunction,
+  validateClaimFunction,
+  getClaimStatusFunction,
+  listClaimsFunction,
+} from '../../functions/claims';
 
 describe('MCP Function Registry Tests', () => {
   const functions = [
     submitClaimFunction,
     validateClaimFunction,
     getClaimStatusFunction,
-    listClaimsFunction
+    listClaimsFunction,
   ];
 
   describe('Function Definitions', () => {
-    functions.forEach(func => {
+    functions.forEach((func) => {
       describe(`${func.name} function`, () => {
         it('should have required MCP function properties', () => {
           expect(func).toHaveProperty('name');
@@ -43,8 +48,8 @@ describe('MCP Function Registry Tests', () => {
 
   describe('Function Discovery', () => {
     it('should expose all required claim processing functions', () => {
-      const functionNames = functions.map(f => f.name);
-      
+      const functionNames = functions.map((f) => f.name);
+
       expect(functionNames).toContain('submitClaim');
       expect(functionNames).toContain('validateClaim');
       expect(functionNames).toContain('getClaimStatus');
@@ -52,16 +57,16 @@ describe('MCP Function Registry Tests', () => {
     });
 
     it('should have unique function names', () => {
-      const functionNames = functions.map(f => f.name);
+      const functionNames = functions.map((f) => f.name);
       const uniqueNames = new Set(functionNames);
-      
+
       expect(uniqueNames.size).toBe(functionNames.length);
     });
   });
 
   describe('Parameter Schemas', () => {
     it('should validate required parameters', () => {
-      functions.forEach(func => {
+      functions.forEach((func) => {
         const shape = func.parameters.shape;
         if (typeof shape === 'object') {
           Object.entries(shape).forEach(([key, value]) => {
@@ -76,12 +81,12 @@ describe('MCP Function Registry Tests', () => {
 
   describe('Return Schemas', () => {
     it('should include standard response properties', () => {
-      functions.forEach(func => {
+      functions.forEach((func) => {
         const returnShape = func.returns.shape;
         if (typeof returnShape === 'object') {
           // Each function should return at least a status indicator
-          const hasStatusIndicator = Object.keys(returnShape).some(key => 
-            ['status', 'success', 'isValid'].includes(key)
+          const hasStatusIndicator = Object.keys(returnShape).some((key) =>
+            ['status', 'success', 'isValid'].includes(key),
           );
           expect(hasStatusIndicator).toBe(true);
         }
@@ -92,7 +97,7 @@ describe('MCP Function Registry Tests', () => {
   describe('Error Handling', () => {
     it('should handle invalid parameters consistently', async () => {
       const invalidParams = {};
-      
+
       for (const func of functions) {
         try {
           await func.parameters.parseAsync(invalidParams);

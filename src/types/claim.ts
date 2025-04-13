@@ -49,14 +49,22 @@ export type ListClaimsFilterDto = z.infer<typeof ListClaimsFilterDtoSchema>;
 // DTO for claim validation response
 export const ClaimValidationResultDtoSchema = z.object({
   is_valid: z.boolean(),
-  errors: z.array(z.object({
-    field: z.string(),
-    message: z.string(),
-  })).optional(),
-  warnings: z.array(z.object({
-    field: z.string(),
-    message: z.string(),
-  })).optional(),
+  errors: z
+    .array(
+      z.object({
+        field: z.string(),
+        message: z.string(),
+      }),
+    )
+    .optional(),
+  warnings: z
+    .array(
+      z.object({
+        field: z.string(),
+        message: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export type ClaimValidationResultDto = z.infer<typeof ClaimValidationResultDtoSchema>;

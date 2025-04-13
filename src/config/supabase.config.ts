@@ -1,5 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Environment validation schema
 const envSchema = z.object({
@@ -21,16 +25,12 @@ if (!env.success) {
 }
 
 // Create Supabase client
-export const supabase = createClient(
-  env.data.SUPABASE_URL,
-  env.data.SUPABASE_ANON_KEY,
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-    },
-  }
-);
+export const supabase = createClient(env.data.SUPABASE_URL, env.data.SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+  },
+});
 
 // Create admin client with service role key if available
 export const supabaseAdmin = env.data.SUPABASE_SERVICE_ROLE_KEY

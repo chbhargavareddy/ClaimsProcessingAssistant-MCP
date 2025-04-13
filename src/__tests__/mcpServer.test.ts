@@ -55,7 +55,7 @@ describe('MCPServer', () => {
   it('should reject calls with invalid auth', async () => {
     // Create an expired auth payload
     const auth = authHandler.createAuth('test-token');
-    auth.timestamp = Date.now() - (25 * 60 * 60 * 1000); // 25 hours ago
+    auth.timestamp = Date.now() - 25 * 60 * 60 * 1000; // 25 hours ago
 
     const call = {
       functionName: 'test',

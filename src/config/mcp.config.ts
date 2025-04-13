@@ -7,7 +7,14 @@ export const MCPConfig = {
   auth: {
     requireAuth: true,
     tokenExpiration: '24h',
-    secretKey: process.env.JWT_SECRET || 'your-secret-key',
+    secretKey: (() => {
+      if (!process.env.JWT_SECRET) {
+        console.error('JWT_SECRET environment variable is required but not found!');
+        process.exit(1);
+      }
+      // Decode the JWT_SECRET to handle + characters correctly
+      return decodeURIComponent(process.env.JWT_SECRET.replace(/\+/g, '%2B'));
+    })(),
   },
   cors: {
     origin: process.env.CORS_ORIGIN || '*',

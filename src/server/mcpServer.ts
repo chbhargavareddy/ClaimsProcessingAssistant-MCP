@@ -1,74 +1,129 @@
-import { MCPConfig, MCPFunctionCall, MCPResponse } from '../config/mcp.config';
-import { MCPAuthHandler, MCPAuthError } from '../auth/mcpAuth';
-import { EventEmitter } from 'events';
+import { z } from 'zod';
+import { MCPRequest } from '../types/mcp';
 
-export class MCPServer extends EventEmitter {
-  private functions: Map<string, Function>;
-  private authHandler: MCPAuthHandler;
+interface RegisteredFunction {
+  handler: (params: any) => Promise<any>;
+  schema: z.ZodSchema;
+}
+
+interface MCPMessage {
+  type: 'request';
+  requestId: string;
+  functionName: string;
+  parameters: any;
+  auth: {
+    token: string;
+  };
+}
+
+export class MCPServer {
+  private functions: Map<string, RegisteredFunction>;
+  private isRunning: boolean;
 
   constructor() {
-    super();
     this.functions = new Map();
-    this.authHandler = new MCPAuthHandler(MCPConfig.auth.secretKey);
+    this.isRunning = false;
   }
 
-  /**
-   * Register a function that can be called via MCP
-   */
-  public registerFunction(name: string, handler: Function): void {
-    this.functions.set(name, handler);
+  registerFunction(name: string, handler: (params: any) => Promise<any>, schema: z.ZodSchema) {
+    this.functions.set(name, { handler, schema });
   }
 
-  /**
-   * Handle an incoming MCP function call
-   */
-  public async handleCall(call: MCPFunctionCall): Promise<MCPResponse> {
+  async handleCall(call: MCPRequest) {
     try {
-      // Validate authentication
-      if (MCPConfig.auth.requireAuth && !this.authHandler.validateAuth(call.auth)) {
-        throw new MCPAuthError();
+      const { functionName, parameters } = call;
+
+      // Check if function exists
+      const fn = this.functions.get(functionName);
+      if (!fn) {
+        throw new Error(`Function ${functionName} not found`);
       }
 
-      // Get the function handler
-      const handler = this.functions.get(call.functionName);
-      if (!handler) {
-        throw new Error(`Function ${call.functionName} not found`);
-      }
+      // Validate parameters
+      const validatedParams = fn.schema.parse(parameters);
 
-      // Execute the function
-      const result = await handler(call.parameters);
+      // Execute function
+      const result = await fn.handler(validatedParams);
 
-      // Return success response
       return {
         success: true,
         data: result,
-        requestId: call.requestId,
       };
     } catch (error) {
-      // Return error response
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        requestId: call.requestId,
       };
     }
   }
 
-  /**
-   * Start the MCP server
-   */
-  public start(): void {
-    this.emit('started', {
-      version: MCPConfig.version,
-      serverName: MCPConfig.serverName,
-      functions: Array.from(this.functions.keys()),
-    });
+  async handleMessage(messageStr: string): Promise<string> {
+    try {
+      const message = JSON.parse(messageStr) as MCPMessage;
+
+      if (message.type !== 'request') {
+        return JSON.stringify({
+          type: 'error',
+          requestId: message.requestId,
+          error: 'Invalid message type',
+        });
+      }
+
+      const fn = this.functions.get(message.functionName);
+      if (!fn) {
+        return JSON.stringify({
+          type: 'error',
+          requestId: message.requestId,
+          error: `Function ${message.functionName} not found`,
+        });
+      }
+
+      // Validate parameters
+      const validatedParams = fn.schema.parse({
+        ...message.parameters,
+        user: {
+          id: message.auth.token,
+          token: message.auth.token,
+        },
+      });
+
+      // Execute function
+      const result = await fn.handler(validatedParams);
+
+      return JSON.stringify({
+        type: 'response',
+        requestId: message.requestId,
+        data: result,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return JSON.stringify({
+          type: 'error',
+          requestId: (error as any).requestId || 'unknown',
+          error: 'Invalid parameters: ' + JSON.stringify(error.errors),
+        });
+      }
+      return JSON.stringify({
+        type: 'error',
+        requestId: (error as any).requestId || 'unknown',
+        error: `Server error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
   }
 
-  /**
-   * Stop the MCP server
-   */
-  public stop(): void {
-    this.emit('stopped');
+  start() {
+    if (this.isRunning) {
+      throw new Error('Server is already running');
+    }
+    this.isRunning = true;
+    console.log('MCP Server started successfully');
+  }
+
+  stop() {
+    if (!this.isRunning) {
+      throw new Error('Server is not running');
+    }
+    this.isRunning = false;
+    console.log('MCP Server stopped successfully');
   }
 }

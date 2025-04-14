@@ -14,16 +14,16 @@ describe('MCPServer', () => {
 
   beforeEach(() => {
     server = new MCPServer();
-    server.register('test-function', testFunction, testSchema);
+    server.registerFunction('test-function', testFunction, testSchema);
   });
 
   it('should register and handle functions', async () => {
     const request = {
       type: 'request',
       requestId: 'test-request',
-      function: 'test-function',
-      params: { param: 'value' },
-      token: 'test-token',
+      functionName: 'test-function',
+      parameters: { param: 'value' },
+      auth: { token: 'test-token', timestamp: Date.now(), signature: 'test-signature' }
     };
 
     const response = await server.handleMessage(JSON.stringify(request));
@@ -42,9 +42,9 @@ describe('MCPServer', () => {
     const request = {
       type: 'request',
       requestId: 'test-request',
-      function: 'non-existent',
-      params: {},
-      token: 'test-token',
+      functionName: 'non-existent',
+      parameters: {},
+      auth: { token: 'test-token', timestamp: Date.now(), signature: 'test-signature' }
     };
 
     const response = await server.handleMessage(JSON.stringify(request));
@@ -58,9 +58,9 @@ describe('MCPServer', () => {
     const request = {
       type: 'request',
       requestId: 'test-request',
-      function: 'test-function',
-      params: { param: 123 }, // Wrong type
-      token: 'test-token',
+      functionName: 'test-function',
+      parameters: { param: 123 }, // Wrong type
+      auth: { token: 'test-token', timestamp: Date.now(), signature: 'test-signature' }
     };
 
     const response = await server.handleMessage(JSON.stringify(request));

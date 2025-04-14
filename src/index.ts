@@ -62,10 +62,29 @@ const context = {
 const wrapHandler = (fn: ClaimFunction) => (params: Parameters<typeof fn.handler>[0]) =>
   fn.handler(params, context);
 
-mcpServer.registerFunction(submitClaimFunction.name, wrapHandler(submitClaimFunction));
-mcpServer.registerFunction(validateClaimFunction.name, wrapHandler(validateClaimFunction));
-mcpServer.registerFunction(getClaimStatusFunction.name, wrapHandler(getClaimStatusFunction));
-mcpServer.registerFunction(listClaimsFunction.name, wrapHandler(listClaimsFunction));
+mcpServer.registerFunction(
+  submitClaimFunction.name,
+  wrapHandler(submitClaimFunction),
+  submitClaimFunction.parameters,
+);
+
+mcpServer.registerFunction(
+  validateClaimFunction.name,
+  wrapHandler(validateClaimFunction),
+  validateClaimFunction.parameters,
+);
+
+mcpServer.registerFunction(
+  getClaimStatusFunction.name,
+  wrapHandler(getClaimStatusFunction),
+  getClaimStatusFunction.parameters,
+);
+
+mcpServer.registerFunction(
+  listClaimsFunction.name,
+  wrapHandler(listClaimsFunction),
+  listClaimsFunction.parameters,
+);
 
 // Create HTTP server
 const server = createServer(async (req, res) => {

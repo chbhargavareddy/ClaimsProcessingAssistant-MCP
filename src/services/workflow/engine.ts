@@ -7,7 +7,7 @@ import {
   WorkflowResult,
   WorkflowError 
 } from './types';
-import { Claim } from '../../types/claim';
+import { Claim, ClaimStatus } from '../../types/claim';
 
 export class ClaimWorkflowEngine {
   private transitions: StateTransition[] = [];
@@ -147,14 +147,14 @@ export class ClaimWorkflowEngine {
     ];
   }
 
-  private async createAuditEntry(claim: Claim, action: string): Promise<void> {
+  private async createAuditEntry(claim: Claim, action: string, context?: WorkflowContext): Promise<void> {
     await this.supabase
       .from('audit_trail')
       .insert({
         claim_id: claim.id,
         action,
-        actor_id: claim.processed_by || claim.claimant_id,
-        changes: { new_status: claim.status }
+        actor_id: context?.userId || 'system',
+        changes: { new_status: claim.status },
       });
   }
 
@@ -164,9 +164,12 @@ export class ClaimWorkflowEngine {
     context: WorkflowContext
   ): Promise<WorkflowResult> {
     try {
+      // Convert ClaimStatus to ClaimState
+      const currentState = this.mapStatusToState(claim.status);
+
       // Find valid transition
       const transition = this.transitions.find(
-        t => t.fromState === claim.status && t.action === action
+        t => t.fromState === currentState && t.action === action
       );
 
       if (!transition) {
@@ -174,7 +177,7 @@ export class ClaimWorkflowEngine {
           success: false,
           error: {
             code: 'INVALID_TRANSITION',
-            message: `Cannot perform action ${action} from state ${claim.status}`
+            message: `Cannot perform action ${action} from state ${currentState}`
           }
         };
       }
@@ -227,10 +230,22 @@ export class ClaimWorkflowEngine {
         success: false,
         error: {
           code: 'WORKFLOW_ERROR',
-          message: 'Error executing workflow action',
-          details: { error }
+          message: error instanceof Error ? error.message : 'Unknown error',
         }
       };
+    }
+  }
+
+  private mapStatusToState(status: ClaimStatus): ClaimState {
+    switch (status) {
+      case 'pending':
+        return 'SUBMITTED';
+      case 'approved':
+        return 'APPROVED';
+      case 'rejected':
+        return 'REJECTED';
+      default:
+        throw new Error(`Invalid claim status: ${status}`);
     }
   }
 }

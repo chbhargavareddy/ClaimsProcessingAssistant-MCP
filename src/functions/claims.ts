@@ -2,6 +2,12 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { validateClaim } from '../validation/claim-validator';
 import { ClaimData } from '../types/validation';
 import { z } from 'zod';
+import {
+  analyzeClaimHandler,
+  validateDocumentsHandler,
+  AnalyzeClaimSchema,
+  ValidateDocumentsSchema,
+} from '../mcp/functions/claim-analysis';
 
 export interface ClaimFunction {
   name: string;
@@ -33,12 +39,12 @@ export const submitClaimFunction: ClaimFunction = {
   returns: ClaimResponseSchema,
   handler: async (params, context) => {
     // Implementation will be added later
-    return { 
+    return {
       id: 'test-id',
       status: 'pending',
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     };
-  }
+  },
 };
 
 const ValidateClaimParamsSchema = z.object({
@@ -47,10 +53,12 @@ const ValidateClaimParamsSchema = z.object({
 
 const ValidationResultSchema = z.object({
   isValid: z.boolean(),
-  errors: z.array(z.object({
-    field: z.string(),
-    message: z.string(),
-  })),
+  errors: z.array(
+    z.object({
+      field: z.string(),
+      message: z.string(),
+    }),
+  ),
   status: z.enum(['VALIDATING', 'VALIDATED', 'FAILED']),
 });
 
@@ -102,7 +110,7 @@ export const validateClaimFunction: ClaimFunction = {
     });
 
     return validationResult;
-  }
+  },
 };
 
 const ClaimStatusParamsSchema = z.object({
@@ -121,11 +129,11 @@ export const getClaimStatusFunction: ClaimFunction = {
   returns: ClaimStatusSchema,
   handler: async (params, context) => {
     // Implementation will be added later
-    return { 
+    return {
       status: 'pending',
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
-  }
+  },
 };
 
 const ListClaimsParamsSchema = z.object({
@@ -146,9 +154,35 @@ export const listClaimsFunction: ClaimFunction = {
   returns: ListClaimsResponseSchema,
   handler: async (params, context) => {
     // Implementation will be added later
-    return { 
+    return {
       claims: [],
-      total: 0
+      total: 0,
     };
-  }
+  },
+};
+
+export const analyzeClaimWithAIFunction: ClaimFunction = {
+  name: 'analyzeClaimWithAI',
+  description: 'Analyze a claim using Claude AI for advanced insights',
+  parameters: AnalyzeClaimSchema,
+  returns: z.object({
+    analysis: z.string(),
+    timestamp: z.string(),
+  }),
+  handler: async (params, _context) => {
+    return await analyzeClaimHandler(params);
+  },
+};
+
+export const validateDocumentsWithAIFunction: ClaimFunction = {
+  name: 'validateDocumentsWithAI',
+  description: 'Validate claim documents using Claude AI for completeness and consistency',
+  parameters: ValidateDocumentsSchema,
+  returns: z.object({
+    validation: z.string(),
+    timestamp: z.string(),
+  }),
+  handler: async (params, _context) => {
+    return await validateDocumentsHandler(params);
+  },
 };

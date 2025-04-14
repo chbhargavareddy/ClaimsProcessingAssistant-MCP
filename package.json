@@ -8,6 +8,7 @@
     "start": "node dist/index.js",
     "dev": "NODE_ENV=development ts-node-dev --respawn --transpile-only src/index.ts",
     "test": "NODE_ENV=test jest",
+    "test:claude": "NODE_ENV=test TEST_SCOPE=claude jest src/__tests__/claim-analysis.test.ts",
     "test:watch": "NODE_ENV=test jest --watch",
     "test:coverage": "NODE_ENV=test jest --coverage",
     "test:server": "NODE_ENV=development ts-node-dev --respawn --transpile-only scripts/test-server.ts",
@@ -16,6 +17,7 @@
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.17.2",
     "@supabase/supabase-js": "^2.39.0"
   },
   "devDependencies": {

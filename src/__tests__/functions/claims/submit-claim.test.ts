@@ -1,3 +1,9 @@
+import { config } from 'dotenv';
+import path from 'path';
+
+// Load test environment variables
+config({ path: path.resolve(process.cwd(), '.env.test') });
+
 import { createTestUser, createTestPolicy } from '../../utils/factories';
 import { submitClaim } from '../../../functions/claims/submit-claim';
 import { createClient } from '@supabase/supabase-js';

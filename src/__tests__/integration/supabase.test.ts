@@ -1,3 +1,10 @@
+import { config } from 'dotenv';
+import path from 'path';
+import 'cross-fetch/polyfill'; // Add fetch polyfill for Node.js
+
+// Load test environment variables
+config({ path: path.resolve(process.cwd(), '.env.test') });
+
 import { createClient } from '@supabase/supabase-js';
 import {
   createTestUser,

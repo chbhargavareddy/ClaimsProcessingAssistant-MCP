@@ -9,7 +9,7 @@ export class MCPAuthHandler {
     if (!secretKey) {
       throw new Error('secretKey is required for MCPAuthHandler');
     }
- 
+
     this.secretKey = secretKey;
     this.tokenExpiration = tokenExpirationHours * 60 * 60 * 1000; // Convert to milliseconds
   }
@@ -24,22 +24,26 @@ export class MCPAuthHandler {
         receivedSignature: auth.signature,
         timestamp: auth.timestamp,
         token: auth.token,
-        secretFirstChars: this.secretKey.substring(0, 10)
+        secretFirstChars: this.secretKey.substring(0, 10),
       });
 
       // Check if the token has expired
       const currentTime = Date.now();
       if (currentTime - auth.timestamp > this.tokenExpiration) {
-        console.log('Token expired:', { currentTime, timestamp: auth.timestamp, diff: currentTime - auth.timestamp });
+        console.log('Token expired:', {
+          currentTime,
+          timestamp: auth.timestamp,
+          diff: currentTime - auth.timestamp,
+        });
         return false;
       }
 
       // Verify the signature
       const expectedSignature = this.generateSignature(auth.token, auth.timestamp);
-      console.log('Signature comparison:', { 
+      console.log('Signature comparison:', {
         expected: expectedSignature,
         received: auth.signature,
-        match: expectedSignature === auth.signature
+        match: expectedSignature === auth.signature,
       });
       return expectedSignature === auth.signature;
     } catch (error) {

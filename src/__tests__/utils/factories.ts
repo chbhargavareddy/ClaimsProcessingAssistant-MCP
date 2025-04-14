@@ -1,52 +1,93 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Claim } from '../../types/claim';
-import { Document } from '../../types/document';
+import { SupabaseClient } from '@supabase/supabase-js';
 
-export const createTestClaim = (overrides: Partial<Claim> = {}): Claim => ({
+interface TestUser {
+  id: string;
+  email: string;
+  name: string;
+  created_at: string;
+}
+
+interface TestPolicy {
+  id: string;
+  policy_number: string;
+  holder_id: string;
+  coverage_amount: number;
+  coverage_type: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  created_at: string;
+}
+
+interface TestClaim {
+  id: string;
+  claim_number: string;
+  user_id: string;
+  policy_id: string;
+  description: string;
+  amount: number;
+  status: string;
+  created_at: string;
+}
+
+interface TestValidationHistory {
+  id: string;
+  claim_id: string;
+  validation_type: string;
+  validation_result: string;
+  details: Record<string, any>;
+  created_at: string;
+}
+
+export const createTestUser = (): TestUser => ({
   id: uuidv4(),
-  policy_number: `POL-${Math.random().toString(36).substring(7)}`,
-  claimant_name: 'Test Claimant',
-  claim_type: 'medical',
-  claim_amount: 1000,
-  status: 'pending',
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  ...overrides
+  email: `test-${uuidv4()}@example.com`,
+  name: 'Test User',
+  created_at: new Date().toISOString()
 });
 
-export const createTestDocument = (overrides: Partial<Document> = {}): Document => ({
+export const createTestPolicy = (holderId: string): TestPolicy => ({
   id: uuidv4(),
-  claim_id: uuidv4(),
-  category_id: uuidv4(),
-  file_name: 'test-document.pdf',
-  file_path: '/test/path/test-document.pdf',
-  file_size: 1024,
-  mime_type: 'application/pdf',
-  status: 'pending',
-  metadata: {},
-  uploaded_at: new Date().toISOString(),
-  ...overrides
-});
-
-export const createTestUser = (overrides: Partial<any> = {}) => ({
-  id: uuidv4(),
-  email: `test-${Math.random().toString(36).substring(7)}@example.com`,
-  role: 'user',
-  created_at: new Date().toISOString(),
-  ...overrides
-});
-
-export const createTestPolicy = (overrides: Partial<any> = {}) => ({
-  id: uuidv4(),
-  policy_number: `POL-${Math.random().toString(36).substring(7)}`,
-  holder_id: uuidv4(),
-  type: 'health',
-  status: 'active',
+  policy_number: `POL-${uuidv4().slice(0, 8)}`,
+  holder_id: holderId,
+  coverage_amount: 10000,
+  coverage_type: 'HEALTH',
   start_date: new Date().toISOString(),
   end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-  coverage_amount: 100000,
-  metadata: {},
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  ...overrides
+  status: 'ACTIVE',
+  created_at: new Date().toISOString()
 });
+
+export const createTestClaim = (userId: string, policyId: string): TestClaim => ({
+  id: uuidv4(),
+  claim_number: `CLM-${uuidv4().slice(0, 8)}`,
+  user_id: userId,
+  policy_id: policyId,
+  description: 'Test claim description',
+  amount: 1000,
+  status: 'PENDING',
+  created_at: new Date().toISOString()
+});
+
+export const createTestValidationHistory = (claimId: string): TestValidationHistory => ({
+  id: uuidv4(),
+  claim_id: claimId,
+  validation_type: 'POLICY_COVERAGE',
+  validation_result: 'PASSED',
+  details: { message: 'Claim amount within policy coverage' },
+  created_at: new Date().toISOString()
+});
+
+export const cleanupTestData = async (supabase: SupabaseClient) => {
+  try {
+    // Delete in reverse order of dependencies
+    await supabase.from('validation_history').delete().neq('id', '');
+    await supabase.from('claims').delete().neq('id', '');
+    await supabase.from('policies').delete().neq('id', '');
+    await supabase.from('users').delete().neq('id', '');
+  } catch (error) {
+    console.error('Cleanup error:', error);
+    throw error;
+  }
+};

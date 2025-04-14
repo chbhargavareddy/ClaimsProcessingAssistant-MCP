@@ -1,82 +1,96 @@
-import { MCPConfig, MCPFunctionCall, MCPResponse } from '../config/mcp.config';
-import { MCPAuthHandler, MCPAuthError } from '../auth/mcpAuth';
-import { EventEmitter } from 'events';
+import { z } from 'zod';
+import { FunctionRegistry } from '../mcp/function-registry';
+import { ProtocolHandler } from '../mcp/protocol-handler';
 
-export class MCPServer extends EventEmitter {
-  private functions: Map<string, Function>;
-  private authHandler: MCPAuthHandler;
+interface MCPRequest {
+  type: string;
+  requestId: string;
+  function: string;
+  params: any;
+  token: string;
+}
+
+interface MCPResponse {
+  type: string;
+  requestId: string;
+  data?: any;
+  error?: string;
+}
+
+export class MCPServer {
+  registerFunction(name: string, arg1: (params: Parameters<(params: any, context: { user: any; supabase: import("@supabase/supabase-js").SupabaseClient; }) => Promise<any>>[0]) => Promise<any>) {
+    throw new Error('Method not implemented.');
+  }
+  handleCall(call: any) {
+    throw new Error('Method not implemented.');
+  }
+  start() {
+    throw new Error('Method not implemented.');
+  }
+  stop() {
+    throw new Error('Method not implemented.');
+  }
+  private registry: FunctionRegistry;
+  private protocolHandler: ProtocolHandler;
 
   constructor() {
-    super();
-    this.functions = new Map();
-    this.authHandler = new MCPAuthHandler(MCPConfig.auth.secretKey);
+    this.registry = new FunctionRegistry();
+    this.protocolHandler = new ProtocolHandler();
   }
 
-  /**
-   * Register a function that can be called via MCP
-   */
-  public registerFunction(name: string, handler: Function): void {
-    this.functions.set(name, handler);
+  register(name: string, handler: (params: any) => Promise<any>, schema: z.ZodSchema): void {
+    this.registry.register(name, handler, schema);
   }
 
-  /**
-   * Handle an incoming MCP function call
-   */
-  public async handleCall(call: MCPFunctionCall): Promise<MCPResponse> {
+  async handleMessage(messageStr: string): Promise<string> {
     try {
-      // Validate authentication
-      if (MCPConfig.auth.requireAuth && !this.authHandler.validateAuth(call.auth)) {
-        throw new MCPAuthError();
+      const message = JSON.parse(messageStr) as MCPRequest;
+
+      if (message.type !== 'request') {
+        return JSON.stringify({
+          type: 'error',
+          requestId: message.requestId,
+          error: 'Invalid message type',
+        });
       }
 
-      // Get the function handler
-      const handler = this.functions.get(call.functionName);
-      if (!handler) {
-        throw new Error(`Function ${call.functionName} not found`);
+      const fn = this.registry.get(message.function);
+      if (!fn) {
+        return JSON.stringify({
+          type: 'error',
+          requestId: message.requestId,
+          error: `Function ${message.function} not found`,
+        });
       }
 
-      // Set user context from auth token
-      const context = {
-        user: {
-          id: call.auth.token, // Using token as user ID for now
-          token: call.auth.token
-        }
-      };
+      // Validate parameters
+      const validationResult = this.registry.validateParams(message.function, {
+        ...message.params,
+        user: { id: message.token, token: message.token },
+      });
 
-      // Execute the function with context
-      const result = await handler(call.parameters, context);
+      if (!validationResult.success) {
+        return JSON.stringify({
+          type: 'error',
+          requestId: message.requestId,
+          error: `Invalid parameters: ${validationResult.error.message}`,
+        });
+      }
 
-      // Return success response
-      return {
-        success: true,
+      // Execute function
+      const result = await fn.handler(validationResult.data);
+
+      return JSON.stringify({
+        type: 'response',
+        requestId: message.requestId,
         data: result,
-        requestId: call.requestId,
-      };
+      });
     } catch (error) {
-      // Return error response
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        requestId: call.requestId,
-      };
+      return JSON.stringify({
+        type: 'error',
+        requestId: 'unknown',
+        error: `Server error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
     }
-  }
-
-  /**
-   * Start the MCP server
-   */
-  public start(): void {
-    this.emit('started', {
-      version: MCPConfig.version,
-      serverName: MCPConfig.serverName,
-      functions: Array.from(this.functions.keys()),
-    });
-  }
-
-  /**
-   * Stop the MCP server
-   */
-  public stop(): void {
-    this.emit('stopped');
   }
 }

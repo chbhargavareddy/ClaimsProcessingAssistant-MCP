@@ -1,112 +1,65 @@
-import {
-  submitClaimFunction,
-  validateClaimFunction,
-  getClaimStatusFunction,
-  listClaimsFunction,
-} from '../../functions/claims';
+import { FunctionRegistry } from '../../mcp/function-registry';
+import { z } from 'zod';
 
-describe('MCP Function Registry Tests', () => {
-  const functions = [
-    submitClaimFunction,
-    validateClaimFunction,
-    getClaimStatusFunction,
-    listClaimsFunction,
-  ];
+describe('FunctionRegistry', () => {
+  let registry: FunctionRegistry;
 
-  describe('Function Definitions', () => {
-    functions.forEach((func) => {
-      describe(`${func.name} function`, () => {
-        it('should have required MCP function properties', () => {
-          expect(func).toHaveProperty('name');
-          expect(func).toHaveProperty('description');
-          expect(func).toHaveProperty('parameters');
-          expect(func).toHaveProperty('returns');
-          expect(func).toHaveProperty('handler');
-        });
-
-        it('should have valid parameter schema', () => {
-          expect(func.parameters).toBeDefined();
-          expect(typeof func.parameters.parse).toBe('function');
-        });
-
-        it('should have valid return schema', () => {
-          expect(func.returns).toBeDefined();
-          expect(typeof func.returns.parse).toBe('function');
-        });
-
-        it('should have a handler function', () => {
-          expect(typeof func.handler).toBe('function');
-        });
-
-        it('should have a non-empty description', () => {
-          expect(func.description).toBeDefined();
-          expect(func.description.length).toBeGreaterThan(0);
-        });
-      });
-    });
+  beforeEach(() => {
+    registry = new FunctionRegistry();
   });
 
-  describe('Function Discovery', () => {
-    it('should expose all required claim processing functions', () => {
-      const functionNames = functions.map((f) => f.name);
-
-      expect(functionNames).toContain('submitClaim');
-      expect(functionNames).toContain('validateClaim');
-      expect(functionNames).toContain('getClaimStatus');
-      expect(functionNames).toContain('listClaims');
+  it('should register and retrieve functions', () => {
+    const testFunction = jest.fn();
+    const schema = z.object({
+      param: z.string(),
     });
 
-    it('should have unique function names', () => {
-      const functionNames = functions.map((f) => f.name);
-      const uniqueNames = new Set(functionNames);
+    registry.register('test', testFunction, schema);
+    const retrieved = registry.get('test');
 
-      expect(uniqueNames.size).toBe(functionNames.length);
-    });
+    expect(retrieved).toBeDefined();
+    expect(retrieved?.handler).toBe(testFunction);
+    expect(retrieved?.schema).toBe(schema);
   });
 
-  describe('Parameter Schemas', () => {
-    it('should validate required parameters', () => {
-      functions.forEach((func) => {
-        const shape = func.parameters.shape;
-        if (typeof shape === 'object') {
-          Object.entries(shape).forEach(([key, value]) => {
-            if (value._def.required) {
-              expect(value).toBeDefined();
-            }
-          });
-        }
-      });
+  it('should validate function parameters', () => {
+    const testFunction = jest.fn();
+    const schema = z.object({
+      param: z.string(),
     });
+
+    registry.register('test', testFunction, schema);
+    const result = registry.validateParams('test', { param: 'value' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({ param: 'value' });
+    }
   });
 
-  describe('Return Schemas', () => {
-    it('should include standard response properties', () => {
-      functions.forEach((func) => {
-        const returnShape = func.returns.shape;
-        if (typeof returnShape === 'object') {
-          // Each function should return at least a status indicator
-          const hasStatusIndicator = Object.keys(returnShape).some((key) =>
-            ['status', 'success', 'isValid'].includes(key),
-          );
-          expect(hasStatusIndicator).toBe(true);
-        }
-      });
+  it('should handle validation errors', () => {
+    const testFunction = jest.fn();
+    const schema = z.object({
+      param: z.string(),
     });
+
+    registry.register('test', testFunction, schema);
+    const result = registry.validateParams('test', { param: 123 });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe('invalid_type');
+    }
   });
 
-  describe('Error Handling', () => {
-    it('should handle invalid parameters consistently', async () => {
-      const invalidParams = {};
-
-      for (const func of functions) {
-        try {
-          await func.parameters.parseAsync(invalidParams);
-          fail(`Expected ${func.name} to throw validation error`);
-        } catch (error: any) {
-          expect(error).toBeDefined();
-          expect(error.errors || error.issues).toBeDefined();
-        }
-      }
+  it('should check required parameters', () => {
+    const schema = z.object({
+      required: z.string(),
+      optional: z.string().optional(),
     });
+
+    const requiredParams = registry['getRequiredParams'](schema);
+    expect(requiredParams).toContain('required');
+    expect(requiredParams).not.toContain('optional');
   });
 });

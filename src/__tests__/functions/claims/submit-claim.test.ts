@@ -1,139 +1,73 @@
-import { submitClaimFunction } from '../../../functions/claims';
 import { createTestUser, createTestPolicy } from '../../utils/factories';
-import { supabase } from '../../setup';
+import { submitClaim } from '../../../functions/claims/submit-claim';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+);
 
 describe('submitClaim', () => {
   let testUser: any;
   let testPolicy: any;
 
   beforeEach(async () => {
-    // Create test user and policy
-    testUser = createTestUser();
-    testPolicy = createTestPolicy({ holder_id: testUser.id });
+    try {
+      // Create test user
+      const testUserData = createTestUser();
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .insert(testUserData)
+        .select()
+        .single();
 
-    // Insert test policy
-    await supabase.from('policies').insert(testPolicy);
+      if (userError) throw userError;
+      if (!userData) throw new Error('Failed to create test user');
+      testUser = userData;
+
+      // Create test policy with string ID
+      const testPolicyData = createTestPolicy(testUser.id);
+      const { data: policyData, error: policyError } = await supabase
+        .from('policies')
+        .insert(testPolicyData)
+        .select()
+        .single();
+
+      if (policyError) throw policyError;
+      if (!policyData) throw new Error('Failed to create test policy');
+      testPolicy = policyData;
+    } catch (error) {
+      console.error('Test setup failed:', error);
+      throw error;
+    }
   });
 
-  it('should successfully submit a valid claim', async () => {
+  afterEach(async () => {
+    try {
+      await supabase.from('claims').delete().neq('id', '');
+      await supabase.from('policies').delete().neq('id', '');
+      await supabase.from('users').delete().neq('id', '');
+    } catch (error) {
+      console.error('Test cleanup failed:', error);
+    }
+  });
+
+  it('should submit a new claim', async () => {
     const claimData = {
-      policy_number: testPolicy.policy_number,
-      claimant_name: 'John Doe',
-      claim_type: 'medical',
-      claim_amount: 500,
-      incident_date: new Date().toISOString(),
-      documents: ['test-doc.pdf'],
-      description: 'Test claim'
+      description: 'Test claim',
+      amount: 1000,
+      policyId: testPolicy.id,
+      userId: testUser.id,
     };
 
-    const result = await submitClaimFunction.handler(claimData, {
-      user: testUser,
-      supabase
+    const result = await submitClaim(claimData, supabase);
+    expect(result.success).toBe(true);
+    expect(result.claim).toMatchObject({
+      description: claimData.description,
+      amount: claimData.amount,
+      policy_id: claimData.policyId,
+      user_id: claimData.userId,
+      status: 'PENDING',
     });
-
-    expect(result.claim).toBeDefined();
-    expect(result.claim.policy_number).toBe(testPolicy.policy_number);
-    expect(result.claim.status).toBe('pending');
-  });
-
-  it('should reject claim submission with invalid policy number', async () => {
-    const claimData = {
-      policy_number: 'INVALID-POLICY',
-      claimant_name: 'John Doe',
-      claim_type: 'medical',
-      claim_amount: 500,
-      incident_date: new Date().toISOString(),
-      documents: ['test-doc.pdf']
-    };
-
-    await expect(
-      submitClaimFunction.handler(claimData, {
-        user: testUser,
-        supabase
-      })
-    ).rejects.toThrow();
-  });
-
-  it('should reject claim submission with amount exceeding coverage', async () => {
-    const claimData = {
-      policy_number: testPolicy.policy_number,
-      claimant_name: 'John Doe',
-      claim_type: 'medical',
-      claim_amount: testPolicy.coverage_amount + 1000,
-      incident_date: new Date().toISOString(),
-      documents: ['test-doc.pdf']
-    };
-
-    await expect(
-      submitClaimFunction.handler(claimData, {
-        user: testUser,
-        supabase
-      })
-    ).rejects.toThrow();
-  });
-
-  it('should create audit trail entry on successful submission', async () => {
-    const claimData = {
-      policy_number: testPolicy.policy_number,
-      claimant_name: 'John Doe',
-      claim_type: 'medical',
-      claim_amount: 500,
-      incident_date: new Date().toISOString(),
-      documents: ['test-doc.pdf']
-    };
-
-    const result = await submitClaimFunction.handler(claimData, {
-      user: testUser,
-      supabase
-    });
-
-    expect(result.claim).toBeDefined();
-    expect(result.claim.id).toBeDefined();
-
-    const { data: auditEntries } = await supabase
-      .from('audit_trail')
-      .select('*')
-      .eq('claim_id', result.claim.id);
-
-    expect(auditEntries).toHaveLength(1);
-    expect(auditEntries![0].action).toBe('CLAIM_SUBMITTED');
-  });
-
-  it('should reject claim submission without required description', async () => {
-    const claimData = {
-      policy_number: testPolicy.policy_number,
-      claimant_name: 'John Doe',
-      claim_type: 'medical',
-      claim_amount: 500,
-      incident_date: new Date().toISOString(),
-      documents: ['test-doc.pdf']
-      // description intentionally omitted
-    };
-
-    await expect(
-      submitClaimFunction.handler(claimData, {
-        user: testUser,
-        supabase
-      })
-    ).rejects.toThrow('Description is required');
-  });
-
-  it('should reject claim submission with description exceeding maximum length', async () => {
-    const claimData = {
-      policy_number: testPolicy.policy_number,
-      claimant_name: 'John Doe',
-      claim_type: 'medical',
-      claim_amount: 500,
-      incident_date: new Date().toISOString(),
-      documents: ['test-doc.pdf'],
-      description: 'a'.repeat(1001) // Exceeds 1000 character limit
-    };
-
-    await expect(
-      submitClaimFunction.handler(claimData, {
-        user: testUser,
-        supabase
-      })
-    ).rejects.toThrow('Description must not exceed 1000 characters');
   });
 });

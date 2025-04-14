@@ -1,58 +1,77 @@
-import { validateClaim } from '../../validation/claim-validator';
-import { ClaimData, ClaimValidationContext } from '../../types/validation';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { v4 as uuidv4 } from 'uuid';
+import { validateClaimRules } from '../../validation/claim-rules';
+import { createClient } from '@supabase/supabase-js';
 
-// Mock data
-const validClaimData: ClaimData = {
-  policy_number: 'POL123',
-  claimant_name: 'John Doe',
-  claim_type: 'medical',
-  claim_amount: 1000,
-  incident_date: '2024-03-20',
-  documents: ['medical_report.pdf', 'invoice.pdf'],
-  description: 'Medical treatment for injury'
-};
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(),
+}));
 
-// Mock Supabase client
-const mockSupabaseClient = {
-  from: jest.fn().mockReturnThis(),
-  select: jest.fn().mockReturnThis(),
-  eq: jest.fn().mockReturnThis(),
-  maybeSingle: jest.fn(),
-  insert: jest.fn(),
-  data: null,
-  error: null
-} as unknown as SupabaseClient;
+describe('Claim Rules Validation', () => {
+  let mockSupabaseClient: any;
 
-const mockContext: ClaimValidationContext = {
-  supabaseClient: mockSupabaseClient,
-  userId: uuidv4()
-};
-
-describe('Claim Validation Rules', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mockSupabaseClient = {
+      from: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn(),
+    };
+
+    (createClient as jest.Mock).mockReturnValue(mockSupabaseClient);
   });
 
-  describe('Policy Validation', () => {
-    it('should validate when policy exists and is active', async () => {
-      mockSupabaseClient.maybeSingle.mockResolvedValueOnce({
-        data: {
-          status: 'active',
-          expiry_date: '2024-12-31',
-          coverage_limit: 5000,
-          start_date: '2024-01-01'
-        },
-        error: null
-      });
+  it('should validate claim amount against policy coverage', async () => {
+    const testClaim = {
+      id: 'test-claim-id',
+      amount: 5000,
+      policy_id: 'test-policy-id',
+    };
 
-      const result = await validateClaim(validClaimData, mockContext);
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-      expect(result.status).toBe('VALIDATED');
+    const testPolicy = {
+      id: 'test-policy-id',
+      coverage_amount: 10000,
+      status: 'ACTIVE',
+    };
+
+    mockSupabaseClient.single.mockResolvedValueOnce({
+      data: testPolicy,
+      error: null,
     });
 
-    // ... rest of the test cases remain the same, just change single to maybeSingle
+    const result = await validateClaimRules(testClaim, mockSupabaseClient);
+
+    expect(result.success).toBe(true);
+    expect(result.validations).toHaveLength(1);
+    expect(result.validations[0]).toMatchObject({
+      validation_type: 'POLICY_COVERAGE',
+      validation_result: 'PASSED',
+    });
+  });
+
+  it('should fail validation if claim amount exceeds coverage', async () => {
+    const testClaim = {
+      id: 'test-claim-id',
+      amount: 15000,
+      policy_id: 'test-policy-id',
+    };
+
+    const testPolicy = {
+      id: 'test-policy-id',
+      coverage_amount: 10000,
+      status: 'ACTIVE',
+    };
+
+    mockSupabaseClient.single.mockResolvedValueOnce({
+      data: testPolicy,
+      error: null,
+    });
+
+    const result = await validateClaimRules(testClaim, mockSupabaseClient);
+
+    expect(result.success).toBe(false);
+    expect(result.validations).toHaveLength(1);
+    expect(result.validations[0]).toMatchObject({
+      validation_type: 'POLICY_COVERAGE',
+      validation_result: 'FAILED',
+    });
   });
 });

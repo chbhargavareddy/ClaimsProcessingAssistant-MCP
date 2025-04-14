@@ -1,73 +1,72 @@
 import { MCPServer } from '../server/mcpServer';
-import { MCPAuthHandler } from '../auth/mcpAuth';
-import { MCPConfig } from '../config/mcp.config';
+import { z } from 'zod';
 
 describe('MCPServer', () => {
   let server: MCPServer;
-  let authHandler: MCPAuthHandler;
+  const testFunction = jest.fn().mockResolvedValue({ result: 'success' });
+  const testSchema = z.object({
+    param: z.string(),
+    user: z.object({
+      id: z.string(),
+      token: z.string(),
+    }),
+  });
 
   beforeEach(() => {
     server = new MCPServer();
-    authHandler = new MCPAuthHandler(MCPConfig.auth.secretKey);
+    server.register('test-function', testFunction, testSchema);
   });
 
   it('should register and handle functions', async () => {
-    // Register a test function
-    const testFunction = jest.fn().mockResolvedValue({ result: 'success' });
-    server.registerFunction('test', testFunction);
-
-    // Create a valid auth payload
-    const auth = authHandler.createAuth('test-token');
-
-    // Create a test call
-    const call = {
-      functionName: 'test',
-      parameters: { param: 'value' },
+    const request = {
+      type: 'request',
       requestId: 'test-request',
-      auth,
+      function: 'test-function',
+      params: { param: 'value' },
+      token: 'test-token',
     };
 
-    // Handle the call
-    const response = await server.handleCall(call);
+    const response = await server.handleMessage(JSON.stringify(request));
+    const parsedResponse = JSON.parse(response);
 
-    expect(response.success).toBe(true);
-    expect(response.data).toEqual({ result: 'success' });
-    expect(response.requestId).toBe('test-request');
-    expect(testFunction).toHaveBeenCalledWith({ param: 'value' });
+    expect(parsedResponse.type).toBe('response');
+    expect(parsedResponse.data).toEqual({ result: 'success' });
+    expect(parsedResponse.requestId).toBe('test-request');
+    expect(testFunction).toHaveBeenCalledWith({
+      param: 'value',
+      user: { id: 'test-token', token: 'test-token' },
+    });
   });
 
   it('should reject calls to non-existent functions', async () => {
-    const auth = authHandler.createAuth('test-token');
-    const call = {
-      functionName: 'nonexistent',
-      parameters: {},
+    const request = {
+      type: 'request',
       requestId: 'test-request',
-      auth,
+      function: 'non-existent',
+      params: {},
+      token: 'test-token',
     };
 
-    const response = await server.handleCall(call);
+    const response = await server.handleMessage(JSON.stringify(request));
+    const parsedResponse = JSON.parse(response);
 
-    expect(response.success).toBe(false);
-    expect(response.error).toBe('Function nonexistent not found');
-    expect(response.requestId).toBe('test-request');
+    expect(parsedResponse.type).toBe('error');
+    expect(parsedResponse.error).toBe('Function non-existent not found');
   });
 
-  it('should reject calls with invalid auth', async () => {
-    // Create an expired auth payload
-    const auth = authHandler.createAuth('test-token');
-    auth.timestamp = Date.now() - 25 * 60 * 60 * 1000; // 25 hours ago
-
-    const call = {
-      functionName: 'test',
-      parameters: {},
+  it('should validate function parameters', async () => {
+    const request = {
+      type: 'request',
       requestId: 'test-request',
-      auth,
+      function: 'test-function',
+      params: { param: 123 }, // Wrong type
+      token: 'test-token',
     };
 
-    const response = await server.handleCall(call);
+    const response = await server.handleMessage(JSON.stringify(request));
+    const parsedResponse = JSON.parse(response);
 
-    expect(response.success).toBe(false);
-    expect(response.error).toBe('Authentication failed');
-    expect(response.requestId).toBe('test-request');
+    expect(parsedResponse.type).toBe('error');
+    expect(parsedResponse.error).toContain('Invalid parameters');
   });
 });

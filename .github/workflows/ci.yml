@@ -27,12 +27,13 @@ jobs:
           --health-retries 5
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-    - name: Use Node.js
-      uses: actions/setup-node@v2
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        node-version: '18.x'
+        node-version: '20.x'
         cache: 'npm'
 
     - name: Install dependencies
@@ -42,7 +43,7 @@ jobs:
       run: npm run lint
 
     - name: Run type check
-      run: npm run type-check
+      run: tsc --noEmit
 
     - name: Set up test database
       run: |
@@ -51,17 +52,28 @@ jobs:
 
     - name: Run tests
       env:
-        SUPABASE_URL: http://localhost:54321
-        SUPABASE_SERVICE_KEY: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTYwMzE5NzQxNCwiZXhwIjoyNTQ3ODQyMjk0LCJyb2xlIjoic2VydmljZV9yb2xlIn0.39z3-t3hHHH3Rw3qhH4jN4G1QvxHrMzKR3_8DYbhzjw
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         POSTGRES_HOST: localhost
         POSTGRES_PORT: 5432
         POSTGRES_USER: postgres
         POSTGRES_PASSWORD: postgres
         POSTGRES_DB: claims_test
+        NODE_ENV: test
       run: npm test
 
     - name: Upload test coverage
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: coverage
         path: coverage/
+        if-no-files-found: warn
+        retention-days: 14
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+        if-no-files-found: warn
+        retention-days: 14

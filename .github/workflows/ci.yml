@@ -50,8 +50,16 @@ jobs:
         PGPASSWORD=postgres psql -h localhost -U postgres -d claims_test -f supabase/migrations/00000000000000_initial_schema.sql
         PGPASSWORD=postgres psql -h localhost -U postgres -d claims_test -f supabase/migrations/*_update_claims_schema.sql
 
+    - name: Create env file
+      run: |
+        echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" > .env.test
+        echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> .env.test
+        echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" >> .env.test
+
     - name: Run tests
       env:
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         POSTGRES_HOST: localhost
@@ -60,6 +68,7 @@ jobs:
         POSTGRES_PASSWORD: postgres
         POSTGRES_DB: claims_test
         NODE_ENV: test
+        CI: true
       run: npm test
 
     - name: Upload test coverage

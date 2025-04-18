@@ -36,7 +36,7 @@ interface TestValidationHistory {
   claim_id: string;
   validation_type: string;
   validation_result: string;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean>;
   created_at: string;
 }
 
@@ -44,7 +44,7 @@ export const createTestUser = (): TestUser => ({
   id: uuidv4(),
   email: `test-${uuidv4()}@example.com`,
   name: 'Test User',
-  created_at: new Date().toISOString()
+  created_at: new Date().toISOString(),
 });
 
 export const createTestPolicy = (holderId: string): TestPolicy => ({
@@ -56,7 +56,7 @@ export const createTestPolicy = (holderId: string): TestPolicy => ({
   start_date: new Date().toISOString(),
   end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
   status: 'ACTIVE',
-  created_at: new Date().toISOString()
+  created_at: new Date().toISOString(),
 });
 
 export const createTestClaim = (userId: string, policyId: string): TestClaim => ({
@@ -67,7 +67,7 @@ export const createTestClaim = (userId: string, policyId: string): TestClaim => 
   description: 'Test claim description',
   amount: 1000,
   status: 'PENDING',
-  created_at: new Date().toISOString()
+  created_at: new Date().toISOString(),
 });
 
 export const createTestValidationHistory = (claimId: string): TestValidationHistory => ({
@@ -76,10 +76,10 @@ export const createTestValidationHistory = (claimId: string): TestValidationHist
   validation_type: 'POLICY_COVERAGE',
   validation_result: 'PASSED',
   details: { message: 'Claim amount within policy coverage' },
-  created_at: new Date().toISOString()
+  created_at: new Date().toISOString(),
 });
 
-export const cleanupTestData = async (supabase: SupabaseClient) => {
+export const cleanupTestData = async (supabase: SupabaseClient): Promise<void> => {
   try {
     // Delete in reverse order of dependencies
     await supabase.from('validation_history').delete().neq('id', '');
@@ -87,7 +87,6 @@ export const cleanupTestData = async (supabase: SupabaseClient) => {
     await supabase.from('policies').delete().neq('id', '');
     await supabase.from('users').delete().neq('id', '');
   } catch (error) {
-    console.error('Cleanup error:', error);
-    throw error;
+    throw new Error(`Cleanup failed: ${error}`);
   }
 };

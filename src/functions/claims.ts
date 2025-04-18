@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { SupabaseClient } from '@supabase/supabase-js';
 import { validateClaim } from '../validation/claim-validator';
 import { ClaimData } from '../types/validation';

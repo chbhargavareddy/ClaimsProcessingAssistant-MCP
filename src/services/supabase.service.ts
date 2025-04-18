@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from '../config/supabase.config';
+import { supabase } from '../config/supabase.config';
 import { Database } from '../types/database.types';
 
 export class SupabaseService {
@@ -6,11 +6,7 @@ export class SupabaseService {
    * Create a new claim
    */
   async createClaim(data: Database['public']['Tables']['claims']['Insert']) {
-    const { data: claim, error } = await supabase
-      .from('claims')
-      .insert(data)
-      .select()
-      .single();
+    const { data: claim, error } = await supabase.from('claims').insert(data).select().single();
 
     if (error) throw error;
     return claim;
@@ -22,11 +18,13 @@ export class SupabaseService {
   async getClaim(id: string) {
     const { data: claim, error } = await supabase
       .from('claims')
-      .select(`
+      .select(
+        `
         *,
         policy:policies(*),
         documents:documents(*)
-      `)
+      `,
+      )
       .eq('id', id)
       .single();
 
@@ -37,10 +35,7 @@ export class SupabaseService {
   /**
    * Update a claim
    */
-  async updateClaim(
-    id: string,
-    data: Database['public']['Tables']['claims']['Update']
-  ) {
+  async updateClaim(id: string, data: Database['public']['Tables']['claims']['Update']) {
     const { data: claim, error } = await supabase
       .from('claims')
       .update(data)
@@ -55,14 +50,8 @@ export class SupabaseService {
   /**
    * List claims with optional filters
    */
-  async listClaims(filters?: {
-    status?: string;
-    policy_id?: string;
-    claimant_id?: string;
-  }) {
-    let query = supabase
-      .from('claims')
-      .select(`
+  async listClaims(filters?: { status?: string; policy_id?: string; claimant_id?: string }) {
+    let query = supabase.from('claims').select(`
         *,
         policy:policies(*),
         documents:documents(*)
@@ -101,9 +90,7 @@ export class SupabaseService {
   /**
    * Add an audit trail entry
    */
-  async addAuditTrail(
-    data: Database['public']['Tables']['audit_trail']['Insert']
-  ) {
+  async addAuditTrail(data: Database['public']['Tables']['audit_trail']['Insert']) {
     const { data: audit, error } = await supabase
       .from('audit_trail')
       .insert(data)

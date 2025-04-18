@@ -1,6 +1,6 @@
 import { Claim } from '../../types/claim';
 
-export type ClaimAction = 
+export type ClaimAction =
   | 'SUBMIT'
   | 'START_REVIEW'
   | 'REQUEST_DOCUMENTS'
@@ -10,7 +10,7 @@ export type ClaimAction =
   | 'REJECT'
   | 'CANCEL';
 
-export type ClaimState = 
+export type ClaimState =
   | 'DRAFT'
   | 'SUBMITTED'
   | 'UNDER_REVIEW'

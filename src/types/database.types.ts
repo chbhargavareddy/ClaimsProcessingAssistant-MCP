@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
   public: {
@@ -22,7 +16,10 @@ export interface Database {
           updated_at: string;
           metadata: Json;
         };
-        Insert: Omit<Database['public']['Tables']['claims']['Row'], 'id' | 'submitted_at' | 'updated_at'>;
+        Insert: Omit<
+          Database['public']['Tables']['claims']['Row'],
+          'id' | 'submitted_at' | 'updated_at'
+        >;
         Update: Partial<Omit<Database['public']['Tables']['claims']['Row'], 'id'>>;
       };
       policies: {

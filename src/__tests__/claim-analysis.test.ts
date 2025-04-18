@@ -58,42 +58,44 @@ describe('Claim Analysis Functions', () => {
 
     it('should successfully analyze a claim', async () => {
       const mockResponse = {
-        content: [{
-          text: JSON.stringify({
-            validity: {
-              status: 'valid',
-              confidence: 0.95,
-              reasons: ['Claim amount reasonable for damage type'],
-            },
-            riskFactors: [
-              {
-                type: 'minor_collision',
-                severity: 'low',
-                description: 'Low-speed parking lot incident',
-              }
-            ],
-            recommendedActions: [
-              {
-                action: 'Request repair estimate',
-                priority: 'normal',
-                assignee: 'claims_adjuster',
-              }
-            ],
-            fraudIndicators: {
-              score: 0.1,
-              flags: [],
-              details: 'No suspicious patterns detected',
-            },
-            processingPriority: 'normal',
-            analysis: 'Standard auto claim with clear documentation',
-          }),
-        }],
+        content: [
+          {
+            text: JSON.stringify({
+              validity: {
+                status: 'valid',
+                confidence: 0.95,
+                reasons: ['Claim amount reasonable for damage type'],
+              },
+              riskFactors: [
+                {
+                  type: 'minor_collision',
+                  severity: 'low',
+                  description: 'Low-speed parking lot incident',
+                },
+              ],
+              recommendedActions: [
+                {
+                  action: 'Request repair estimate',
+                  priority: 'normal',
+                  assignee: 'claims_adjuster',
+                },
+              ],
+              fraudIndicators: {
+                score: 0.1,
+                flags: [],
+                details: 'No suspicious patterns detected',
+              },
+              processingPriority: 'normal',
+              analysis: 'Standard auto claim with clear documentation',
+            }),
+          },
+        ],
       };
 
       mockCreate.mockResolvedValue(mockResponse);
 
       const result = await analyzeClaimHandler(validClaimData);
-      
+
       expect(result).toMatchObject({
         validity: expect.objectContaining({
           status: 'valid',
@@ -153,17 +155,19 @@ describe('Claim Analysis Functions', () => {
 
   describe('validateDocumentsHandler', () => {
     const validDocuments = {
-      documents: [{
-        type: 'police_report' as const,
-        content: 'Accident report details...',
-        date: '2024-03-20',
-        signatures: ['Officer Smith'],
-        metadata: {
-          source: 'Local Police Department',
-          verified: true,
-          pageCount: 2,
+      documents: [
+        {
+          type: 'police_report' as const,
+          content: 'Accident report details...',
+          date: '2024-03-20',
+          signatures: ['Officer Smith'],
+          metadata: {
+            source: 'Local Police Department',
+            verified: true,
+            pageCount: 2,
+          },
         },
-      }],
+      ],
     };
 
     it('should validate documents against schema', () => {
@@ -173,45 +177,47 @@ describe('Claim Analysis Functions', () => {
 
     it('should successfully validate documents', async () => {
       const mockResponse = {
-        content: [{
-          text: JSON.stringify({
-            completeness: {
-              status: 'complete',
-              missingElements: [],
-              score: 1.0,
-            },
-            consistency: {
-              status: 'consistent',
-              issues: [],
-              details: 'All information aligns',
-            },
-            signatures: {
-              valid: true,
-              verified: ['Officer Smith'],
-              missing: [],
-            },
-            dates: {
-              valid: true,
-              issues: [],
-            },
-            suspiciousPatterns: {
-              detected: false,
-              flags: [],
-              riskLevel: 'low',
-            },
-            quality: {
-              score: 0.95,
-              issues: [],
-            },
-            validation: 'All documents are complete and valid',
-          }),
-        }],
+        content: [
+          {
+            text: JSON.stringify({
+              completeness: {
+                status: 'complete',
+                missingElements: [],
+                score: 1.0,
+              },
+              consistency: {
+                status: 'consistent',
+                issues: [],
+                details: 'All information aligns',
+              },
+              signatures: {
+                valid: true,
+                verified: ['Officer Smith'],
+                missing: [],
+              },
+              dates: {
+                valid: true,
+                issues: [],
+              },
+              suspiciousPatterns: {
+                detected: false,
+                flags: [],
+                riskLevel: 'low',
+              },
+              quality: {
+                score: 0.95,
+                issues: [],
+              },
+              validation: 'All documents are complete and valid',
+            }),
+          },
+        ],
       };
 
       mockCreate.mockResolvedValue(mockResponse);
 
       const result = await validateDocumentsHandler(validDocuments);
-      
+
       expect(result).toMatchObject({
         completeness: expect.objectContaining({
           status: expect.stringMatching(/^(complete|incomplete|needs_review)$/),
@@ -240,7 +246,9 @@ describe('Claim Analysis Functions', () => {
 
     it('should handle API errors gracefully', async () => {
       mockCreate.mockRejectedValue(new Error('API Error'));
-      await expect(validateDocumentsHandler(validDocuments)).rejects.toThrow('Failed to validate documents');
+      await expect(validateDocumentsHandler(validDocuments)).rejects.toThrow(
+        'Failed to validate documents',
+      );
     });
 
     it('should reject invalid document data', () => {
@@ -248,15 +256,15 @@ describe('Claim Analysis Functions', () => {
         documents: [
           {
             type: 'other' as const,
-            content: '',  // Missing proper content
-            date: 'invalid-date',  // Invalid date format
-            signatures: [],  // Empty signatures
+            content: '', // Missing proper content
+            date: 'invalid-date', // Invalid date format
+            signatures: [], // Empty signatures
             metadata: {
-              source: '',  // Missing source
+              source: '', // Missing source
               verified: false,
-              pageCount: -1,  // Invalid page count
+              pageCount: -1, // Invalid page count
             },
-          }
+          },
         ],
       };
 
@@ -269,10 +277,12 @@ describe('Claim Analysis Functions', () => {
 
     it('should validate document date format', () => {
       const invalidDateData = {
-        documents: [{
-          ...validDocuments.documents[0],
-          date: '20-03-2024', // Wrong format
-        }],
+        documents: [
+          {
+            ...validDocuments.documents[0],
+            date: '20-03-2024', // Wrong format
+          },
+        ],
       };
 
       const result = ValidateDocumentsSchema.safeParse(invalidDateData);

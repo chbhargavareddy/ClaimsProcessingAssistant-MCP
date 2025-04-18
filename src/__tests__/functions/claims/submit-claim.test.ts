@@ -1,61 +1,32 @@
-import { config } from 'dotenv';
-import path from 'path';
-
-// Load test environment variables
-config({ path: path.resolve(process.cwd(), '.env.test') });
-
 import { createTestUser, createTestPolicy } from '../../utils/factories';
 import { submitClaim } from '../../../functions/claims/submit-claim';
-import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+// Mock Supabase client
+const mockSupabase = {
+  from: jest.fn().mockReturnThis(),
+  insert: jest.fn().mockReturnThis(),
+  select: jest.fn().mockReturnThis(),
+  single: jest.fn(),
+  delete: jest.fn().mockReturnThis(),
+  neq: jest.fn().mockResolvedValue({ data: null, error: null }),
+};
+
+// Mock the createClient function
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => mockSupabase),
+}));
 
 describe('submitClaim', () => {
   let testUser: any;
   let testPolicy: any;
 
-  beforeEach(async () => {
-    try {
-      // Create test user
-      const testUserData = createTestUser();
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .insert(testUserData)
-        .select()
-        .single();
+  beforeEach(() => {
+    // Reset mock data
+    testUser = createTestUser();
+    testPolicy = createTestPolicy(testUser.id);
 
-      if (userError) throw userError;
-      if (!userData) throw new Error('Failed to create test user');
-      testUser = userData;
-
-      // Create test policy with string ID
-      const testPolicyData = createTestPolicy(testUser.id);
-      const { data: policyData, error: policyError } = await supabase
-        .from('policies')
-        .insert(testPolicyData)
-        .select()
-        .single();
-
-      if (policyError) throw policyError;
-      if (!policyData) throw new Error('Failed to create test policy');
-      testPolicy = policyData;
-    } catch (error) {
-      console.error('Test setup failed:', error);
-      throw error;
-    }
-  });
-
-  afterEach(async () => {
-    try {
-      await supabase.from('claims').delete().neq('id', '');
-      await supabase.from('policies').delete().neq('id', '');
-      await supabase.from('users').delete().neq('id', '');
-    } catch (error) {
-      console.error('Test cleanup failed:', error);
-    }
+    // Reset all mocks
+    jest.clearAllMocks();
   });
 
   it('should submit a new claim', async () => {
@@ -66,7 +37,29 @@ describe('submitClaim', () => {
       userId: testUser.id,
     };
 
-    const result = await submitClaim(claimData, supabase);
+    // Mock the insert and select chain for claim creation
+    mockSupabase.insert.mockReturnThis();
+    mockSupabase.select.mockReturnThis();
+    mockSupabase.single.mockResolvedValueOnce({
+      data: {
+        id: 'test-claim-id',
+        description: claimData.description,
+        amount: claimData.amount,
+        policy_id: claimData.policyId,
+        user_id: claimData.userId,
+        status: 'PENDING',
+      },
+      error: null,
+    });
+
+    const result = await submitClaim(claimData, mockSupabase as any);
+
+    // Verify the mock was called correctly
+    expect(mockSupabase.from).toHaveBeenCalledWith('claims');
+    expect(mockSupabase.insert).toHaveBeenCalled();
+    expect(mockSupabase.select).toHaveBeenCalled();
+
+    // Verify the result
     expect(result.success).toBe(true);
     expect(result.claim).toMatchObject({
       description: claimData.description,

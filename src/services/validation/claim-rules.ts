@@ -1,14 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import { Claim } from '../../types/claim';
 import { ValidationRule, ValidationContext, ValidationResult } from './types';
-import { Document, DocumentCategory } from '../../types/document';
 
 // Policy validation rule
 export const policyValidationRule: ValidationRule<Claim> = {
   code: 'POLICY_VALIDATION',
-  async validate(claim: Claim, context: ValidationContext): Promise<ValidationResult> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async validate(claim: Claim, _context: ValidationContext): Promise<ValidationResult> {
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
-    
+
     // Fetch policy details
     const { data: policy, error } = await supabase
       .from('policies')
@@ -19,12 +19,14 @@ export const policyValidationRule: ValidationRule<Claim> = {
     if (error || !policy) {
       return {
         isValid: false,
-        errors: [{
-          field: 'policy_number',
-          message: 'Invalid or inactive policy number',
-          code: 'INVALID_POLICY'
-        }],
-        warnings: []
+        errors: [
+          {
+            field: 'policy_number',
+            message: 'Invalid or inactive policy number',
+            code: 'INVALID_POLICY',
+          },
+        ],
+        warnings: [],
       };
     }
 
@@ -36,7 +38,7 @@ export const policyValidationRule: ValidationRule<Claim> = {
       errors.push({
         field: 'policy_number',
         message: 'Policy is not active',
-        code: 'INACTIVE_POLICY'
+        code: 'INACTIVE_POLICY',
       });
     }
 
@@ -45,7 +47,7 @@ export const policyValidationRule: ValidationRule<Claim> = {
       errors.push({
         field: 'claim_amount',
         message: 'Claim amount exceeds policy coverage',
-        code: 'EXCEEDS_COVERAGE'
+        code: 'EXCEEDS_COVERAGE',
       });
     }
 
@@ -58,24 +60,25 @@ export const policyValidationRule: ValidationRule<Claim> = {
       errors.push({
         field: 'policy_number',
         message: 'Claim date outside policy coverage period',
-        code: 'OUTSIDE_COVERAGE_PERIOD'
+        code: 'OUTSIDE_COVERAGE_PERIOD',
       });
     }
 
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
-  }
+  },
 };
 
 // Required documents validation rule
 export const requiredDocumentsRule: ValidationRule<Claim> = {
   code: 'REQUIRED_DOCUMENTS',
-  async validate(claim: Claim, context: ValidationContext): Promise<ValidationResult> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async validate(claim: Claim, _context: ValidationContext): Promise<ValidationResult> {
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
-    
+
     // Fetch required document categories
     const { data: categories } = await supabase
       .from('document_categories')
@@ -92,13 +95,13 @@ export const requiredDocumentsRule: ValidationRule<Claim> = {
     const warnings: any[] = [];
 
     if (categories) {
-      categories.forEach(category => {
-        const hasDocument = documents?.some(doc => doc.category_id === category.id);
+      categories.forEach((category) => {
+        const hasDocument = documents?.some((doc) => doc.category_id === category.id);
         if (!hasDocument) {
           errors.push({
             field: 'documents',
             message: `Missing required document: ${category.name}`,
-            code: 'MISSING_REQUIRED_DOCUMENT'
+            code: 'MISSING_REQUIRED_DOCUMENT',
           });
         }
       });
@@ -107,17 +110,18 @@ export const requiredDocumentsRule: ValidationRule<Claim> = {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
-  }
+  },
 };
 
 // Duplicate claim check rule
 export const duplicateClaimRule: ValidationRule<Claim> = {
   code: 'DUPLICATE_CLAIM',
-  async validate(claim: Claim, context: ValidationContext): Promise<ValidationResult> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async validate(claim: Claim, _context: ValidationContext): Promise<ValidationResult> {
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
-    
+
     // Look for similar claims in the last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -136,14 +140,14 @@ export const duplicateClaimRule: ValidationRule<Claim> = {
       warnings.push({
         field: 'claim',
         message: 'Similar claim detected within the last 30 days',
-        code: 'POTENTIAL_DUPLICATE'
+        code: 'POTENTIAL_DUPLICATE',
       });
     }
 
     return {
       isValid: true,
       errors: [],
-      warnings
+      warnings,
     };
-  }
+  },
 };

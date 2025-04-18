@@ -13,24 +13,19 @@ export class ClaimValidator extends BaseValidationEngine<Claim> {
     this.addRule(duplicateClaimRule);
   }
 
-  async validateAndSaveResult(
-    claim: Claim,
-    context: ValidationContext
-  ): Promise<ValidationResult> {
+  async validateAndSaveResult(claim: Claim, context: ValidationContext): Promise<ValidationResult> {
     const result = await this.validate(claim, context);
-    
+
     // Save validation result to database
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
-    
-    await supabase
-      .from('validation_history')
-      .insert({
-        claim_id: claim.id,
-        is_valid: result.isValid,
-        errors: result.errors,
-        warnings: result.warnings,
-        validated_by: context.userId,
-      });
+
+    await supabase.from('validation_history').insert({
+      claim_id: claim.id,
+      is_valid: result.isValid,
+      errors: result.errors,
+      warnings: result.warnings,
+      validated_by: context.userId,
+    });
 
     return result;
   }

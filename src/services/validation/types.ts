@@ -1,6 +1,3 @@
-import { Claim } from '../../types/claim';
-import { Document } from '../../types/document';
-
 export interface ValidationError {
   field: string;
   message: string;

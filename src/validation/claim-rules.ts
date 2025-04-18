@@ -15,7 +15,7 @@ interface Policy {
 interface ValidationResult {
   validation_type: string;
   validation_result: string;
-  details?: Record<string, any>;
+  details?: Record<string, string | number | boolean>;
 }
 
 interface ValidationResponse {
@@ -83,12 +83,13 @@ function validateCoverage(claim: Claim, policy: Policy): ValidationResult {
     validation_type: 'POLICY_COVERAGE',
     validation_result: 'FAILED',
     details: {
-      message: claim.amount > policy.coverage_amount
-        ? 'Claim amount exceeds policy coverage'
-        : 'Policy is not active',
+      message:
+        claim.amount > policy.coverage_amount
+          ? 'Claim amount exceeds policy coverage'
+          : 'Policy is not active',
       claim_amount: claim.amount,
       coverage_amount: policy.coverage_amount,
       policy_status: policy.status,
     },
   };
-} 
+}

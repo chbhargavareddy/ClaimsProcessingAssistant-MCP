@@ -5,16 +5,13 @@ import { ClaimWorkflowEngine } from '../workflow/engine';
 import { WorkflowContext, WorkflowResult } from '../workflow/types';
 
 export class ClaimProcessor {
-  private supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!
-  );
+  private supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
   private validator = new ClaimValidator();
   private workflowEngine = new ClaimWorkflowEngine();
 
   async submitClaim(
     dto: SubmitClaimDto,
-    userId: string
+    userId: string,
   ): Promise<{ claim: Claim; workflowResult: WorkflowResult }> {
     // Create new claim
     const { data: claim, error } = await this.supabase
@@ -22,7 +19,7 @@ export class ClaimProcessor {
       .insert({
         ...dto,
         status: 'DRAFT',
-        claimant_id: userId
+        claimant_id: userId,
       })
       .select()
       .single();
@@ -34,21 +31,17 @@ export class ClaimProcessor {
     // Submit the claim through workflow
     const context: WorkflowContext = {
       userId,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
-    const workflowResult = await this.workflowEngine.executeAction(
-      claim,
-      'SUBMIT',
-      context
-    );
+    const workflowResult = await this.workflowEngine.executeAction(claim, 'SUBMIT', context);
 
     return { claim, workflowResult };
   }
 
   async validateClaim(
     claimId: string,
-    userId: string
+    userId: string,
   ): Promise<{ validationResult: any; workflowResult: WorkflowResult }> {
     // Get claim
     const { data: claim, error } = await this.supabase
@@ -64,27 +57,20 @@ export class ClaimProcessor {
     // Start validation workflow
     const context: WorkflowContext = {
       userId,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     await this.workflowEngine.executeAction(claim, 'VALIDATE', context);
 
     // Perform validation
-    const validationResult = await this.validator.validateAndSaveResult(
-      claim,
-      {
-        userId,
-        timestamp: new Date()
-      }
-    );
+    const validationResult = await this.validator.validateAndSaveResult(claim, {
+      userId,
+      timestamp: new Date(),
+    });
 
     // Based on validation result, approve or reject
     const action = validationResult.isValid ? 'APPROVE' : 'REJECT';
-    const workflowResult = await this.workflowEngine.executeAction(
-      claim,
-      action,
-      context
-    );
+    const workflowResult = await this.workflowEngine.executeAction(claim, action, context);
 
     return { validationResult, workflowResult };
   }
@@ -92,7 +78,7 @@ export class ClaimProcessor {
   async requestDocuments(
     claimId: string,
     userId: string,
-    requiredDocuments: string[]
+    requiredDocuments: string[],
   ): Promise<WorkflowResult> {
     // Get claim
     const { data: claim, error } = await this.supabase
@@ -111,8 +97,8 @@ export class ClaimProcessor {
       .update({
         metadata: {
           ...claim.metadata,
-          required_documents: requiredDocuments
-        }
+          required_documents: requiredDocuments,
+        },
       })
       .eq('id', claimId);
 
@@ -120,41 +106,13 @@ export class ClaimProcessor {
     const context: WorkflowContext = {
       userId,
       timestamp: new Date(),
-      metadata: { required_documents: requiredDocuments }
+      metadata: { required_documents: requiredDocuments },
     };
 
     return this.workflowEngine.executeAction(claim, 'REQUEST_DOCUMENTS', context);
   }
 
-  async providedDocuments(
-    claimId: string,
-    userId: string
-  ): Promise<WorkflowResult> {
-    // Get claim
-    const { data: claim, error } = await this.supabase
-      .from('claims')
-      .select('*')
-      .eq('id', claimId)
-      .single();
-
-    if (error || !claim) {
-      throw new Error('Claim not found');
-    }
-
-    // Execute workflow action
-    const context: WorkflowContext = {
-      userId,
-      timestamp: new Date()
-    };
-
-    return this.workflowEngine.executeAction(claim, 'PROVIDE_DOCUMENTS', context);
-  }
-
-  async cancelClaim(
-    claimId: string,
-    userId: string,
-    reason: string
-  ): Promise<WorkflowResult> {
+  async providedDocuments(claimId: string, userId: string): Promise<WorkflowResult> {
     // Get claim
     const { data: claim, error } = await this.supabase
       .from('claims')
@@ -170,7 +128,28 @@ export class ClaimProcessor {
     const context: WorkflowContext = {
       userId,
       timestamp: new Date(),
-      metadata: { cancellation_reason: reason }
+    };
+
+    return this.workflowEngine.executeAction(claim, 'PROVIDE_DOCUMENTS', context);
+  }
+
+  async cancelClaim(claimId: string, userId: string, reason: string): Promise<WorkflowResult> {
+    // Get claim
+    const { data: claim, error } = await this.supabase
+      .from('claims')
+      .select('*')
+      .eq('id', claimId)
+      .single();
+
+    if (error || !claim) {
+      throw new Error('Claim not found');
+    }
+
+    // Execute workflow action
+    const context: WorkflowContext = {
+      userId,
+      timestamp: new Date(),
+      metadata: { cancellation_reason: reason },
     };
 
     return this.workflowEngine.executeAction(claim, 'CANCEL', context);

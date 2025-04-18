@@ -1,9 +1,14 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ClaimData, ClaimValidationContext, ValidationResult, ValidationError } from '../types/validation';
+import {
+  ClaimData,
+  ClaimValidationContext,
+  ValidationResult,
+  ValidationError,
+} from '../types/validation';
 
 interface ValidationStep {
   errors: ValidationError[];
-  warnings: ValidationError[];  // Changed from optional to required
+  warnings: ValidationError[]; // Changed from optional to required
 }
 
 /**
@@ -14,7 +19,7 @@ interface ValidationStep {
  */
 export async function validateClaim(
   claim: ClaimData,
-  context: ClaimValidationContext
+  context: ClaimValidationContext,
 ): Promise<ValidationResult> {
   const errors: ValidationError[] = [];
   const warnings: ValidationError[] = [];
@@ -54,18 +59,19 @@ export async function validateClaim(
       isValid: errors.length === 0,
       errors,
       warnings,
-      status: errors.length === 0 ? 'VALIDATED' : 'FAILED'
+      status: errors.length === 0 ? 'VALIDATED' : 'FAILED',
     };
   } catch (error) {
-    console.error('Validation error:', error);
     return {
       isValid: false,
-      errors: [{
-        field: 'general',
-        message: 'An unexpected error occurred during validation'
-      }],
+      errors: [
+        {
+          field: 'general',
+          message: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+      ],
       warnings,
-      status: 'FAILED'
+      status: 'FAILED',
     };
   }
 }
@@ -75,7 +81,7 @@ export async function validateClaim(
  */
 async function validatePolicy(
   claim: ClaimData,
-  supabaseClient: SupabaseClient
+  supabaseClient: SupabaseClient,
 ): Promise<ValidationStep> {
   const errors: ValidationError[] = [];
   const warnings: ValidationError[] = [];
@@ -83,7 +89,7 @@ async function validatePolicy(
   if (!claim.policy_number) {
     errors.push({
       field: 'policy_number',
-      message: 'Policy number is required'
+      message: 'Policy number is required',
     });
     return { errors, warnings };
   }
@@ -98,12 +104,12 @@ async function validatePolicy(
   if (!policy) {
     errors.push({
       field: 'policy_number',
-      message: `Invalid policy number: ${claim.policy_number}`
+      message: `Invalid policy number: ${claim.policy_number}`,
     });
   } else if (policy.status !== 'active') {
     errors.push({
       field: 'policy_number',
-      message: 'Policy is not active'
+      message: 'Policy is not active',
     });
   }
 
@@ -120,7 +126,7 @@ function validateDocuments(documents: string[]): ValidationStep {
   if (!documents || documents.length === 0) {
     errors.push({
       field: 'documents',
-      message: 'At least one document must be attached to the claim'
+      message: 'At least one document must be attached to the claim',
     });
   }
 
@@ -132,7 +138,7 @@ function validateDocuments(documents: string[]): ValidationStep {
  */
 async function validateDuplicateClaims(
   claim: ClaimData,
-  supabaseClient: SupabaseClient
+  supabaseClient: SupabaseClient,
 ): Promise<ValidationStep> {
   const errors: ValidationError[] = [];
   const warnings: ValidationError[] = [];
@@ -150,20 +156,20 @@ async function validateDuplicateClaims(
     .gte('created_at', thirtyDaysAgo.toISOString());
 
   if (existingClaims && existingClaims.length > 0) {
-    const pendingClaims = existingClaims.filter(c => c.status === 'pending');
-    const approvedClaims = existingClaims.filter(c => c.status === 'approved');
+    const pendingClaims = existingClaims.filter((c) => c.status === 'pending');
+    const approvedClaims = existingClaims.filter((c) => c.status === 'approved');
 
     if (pendingClaims.length > 0) {
       warnings.push({
         field: 'general',
-        message: 'There are pending claims for the same incident date'
+        message: 'There are pending claims for the same incident date',
       });
     }
 
     if (approvedClaims.length > 0) {
       errors.push({
         field: 'general',
-        message: 'A claim for this incident has already been approved'
+        message: 'A claim for this incident has already been approved',
       });
     }
   }
@@ -181,7 +187,7 @@ function validateClaimantInfo(claim: ClaimData): ValidationStep {
   if (!claim.claimant_name) {
     errors.push({
       field: 'claimant_name',
-      message: 'Claimant name is required'
+      message: 'Claimant name is required',
     });
   }
 
@@ -198,14 +204,14 @@ function validateClaimAmount(claim: ClaimData): ValidationStep {
   if (!claim.claim_amount || claim.claim_amount <= 0) {
     errors.push({
       field: 'claim_amount',
-      message: 'Claim amount must be greater than zero'
+      message: 'Claim amount must be greater than zero',
     });
   }
 
   if (claim.claim_amount > 100000) {
     warnings.push({
       field: 'claim_amount',
-      message: 'High value claim - requires additional review'
+      message: 'High value claim - requires additional review',
     });
   }
 
@@ -217,7 +223,7 @@ function validateClaimAmount(claim: ClaimData): ValidationStep {
  */
 async function validateIncidentDate(
   claim: ClaimData,
-  supabaseClient: SupabaseClient
+  supabaseClient: SupabaseClient,
 ): Promise<ValidationStep> {
   const errors: ValidationError[] = [];
   const warnings: ValidationError[] = [];
@@ -230,7 +236,7 @@ async function validateIncidentDate(
   if (incidentDate > today) {
     errors.push({
       field: 'incident_date',
-      message: 'Incident date cannot be in the future'
+      message: 'Incident date cannot be in the future',
     });
   }
 
@@ -248,7 +254,7 @@ async function validateIncidentDate(
     if (incidentDate < startDate || incidentDate > endDate) {
       errors.push({
         field: 'incident_date',
-        message: 'Incident date is outside of policy coverage period'
+        message: 'Incident date is outside of policy coverage period',
       });
     }
   }

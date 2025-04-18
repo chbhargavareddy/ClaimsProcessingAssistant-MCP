@@ -1,12 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import {
-  ClaimState,
-  ClaimAction,
-  StateTransition,
-  WorkflowContext,
-  WorkflowResult,
-  WorkflowError,
-} from './types';
+import { ClaimState, ClaimAction, StateTransition, WorkflowContext, WorkflowResult } from './types';
 import { Claim, ClaimStatus } from '../../types/claim';
 
 export class ClaimWorkflowEngine {
@@ -17,7 +10,7 @@ export class ClaimWorkflowEngine {
     this.initializeTransitions();
   }
 
-  private initializeTransitions() {
+  private initializeTransitions(): void {
     // Define all possible state transitions
     this.transitions = [
       // Submit new claim
@@ -25,11 +18,11 @@ export class ClaimWorkflowEngine {
         fromState: 'DRAFT',
         action: 'SUBMIT',
         toState: 'SUBMITTED',
-        conditions: async (claim) => {
+        conditions: async (claim: Claim): Promise<boolean> => {
           // Check if all required fields are present
           return !!(claim.policy_number && claim.claimant_name && claim.claim_amount);
         },
-        sideEffects: async (claim) => {
+        sideEffects: async (claim: Claim): Promise<void> => {
           // Create audit trail entry
           await this.createAuditEntry(claim, 'CLAIM_SUBMITTED');
         },
@@ -235,15 +228,6 @@ export class ClaimWorkflowEngine {
   }
 
   private mapStatusToState(status: ClaimStatus): ClaimState {
-    switch (status) {
-      case 'pending':
-        return 'SUBMITTED';
-      case 'approved':
-        return 'APPROVED';
-      case 'rejected':
-        return 'REJECTED';
-      default:
-        throw new Error(`Invalid claim status: ${status}`);
-    }
+    return status as ClaimState;
   }
 }

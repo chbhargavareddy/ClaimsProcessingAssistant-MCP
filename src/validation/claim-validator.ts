@@ -62,13 +62,12 @@ export async function validateClaim(
       status: errors.length === 0 ? 'VALIDATED' : 'FAILED',
     };
   } catch (error) {
-    console.error('Validation error:', error);
     return {
       isValid: false,
       errors: [
         {
           field: 'general',
-          message: 'An unexpected error occurred during validation',
+          message: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         },
       ],
       warnings,

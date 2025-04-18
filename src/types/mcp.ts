@@ -6,7 +6,7 @@ export interface MCPAuth {
 
 export interface MCPRequest {
   functionName: string;
-  parameters: any;
+  parameters: Record<string, unknown>;
   requestId: string;
   auth: MCPAuth;
 }

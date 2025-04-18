@@ -1,12 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { Claim } from '../../types/claim';
 import { ValidationRule, ValidationContext, ValidationResult } from './types';
-import { Document, DocumentCategory } from '../../types/document';
 
 // Policy validation rule
 export const policyValidationRule: ValidationRule<Claim> = {
   code: 'POLICY_VALIDATION',
-  async validate(claim: Claim, context: ValidationContext): Promise<ValidationResult> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async validate(claim: Claim, _context: ValidationContext): Promise<ValidationResult> {
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
 
     // Fetch policy details
@@ -75,7 +75,8 @@ export const policyValidationRule: ValidationRule<Claim> = {
 // Required documents validation rule
 export const requiredDocumentsRule: ValidationRule<Claim> = {
   code: 'REQUIRED_DOCUMENTS',
-  async validate(claim: Claim, context: ValidationContext): Promise<ValidationResult> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async validate(claim: Claim, _context: ValidationContext): Promise<ValidationResult> {
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
 
     // Fetch required document categories
@@ -117,7 +118,8 @@ export const requiredDocumentsRule: ValidationRule<Claim> = {
 // Duplicate claim check rule
 export const duplicateClaimRule: ValidationRule<Claim> = {
   code: 'DUPLICATE_CLAIM',
-  async validate(claim: Claim, context: ValidationContext): Promise<ValidationResult> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async validate(claim: Claim, _context: ValidationContext): Promise<ValidationResult> {
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
 
     // Look for similar claims in the last 30 days

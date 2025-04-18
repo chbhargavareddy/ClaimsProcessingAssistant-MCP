@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from '../config/supabase.config';
+import { supabase } from '../config/supabase.config';
 import { Database } from '../types/database.types';
 
 export class SupabaseService {

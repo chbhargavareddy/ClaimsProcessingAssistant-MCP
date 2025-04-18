@@ -36,7 +36,7 @@ interface TestValidationHistory {
   claim_id: string;
   validation_type: string;
   validation_result: string;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean>;
   created_at: string;
 }
 
@@ -79,7 +79,7 @@ export const createTestValidationHistory = (claimId: string): TestValidationHist
   created_at: new Date().toISOString(),
 });
 
-export const cleanupTestData = async (supabase: SupabaseClient) => {
+export const cleanupTestData = async (supabase: SupabaseClient): Promise<void> => {
   try {
     // Delete in reverse order of dependencies
     await supabase.from('validation_history').delete().neq('id', '');
@@ -87,7 +87,6 @@ export const cleanupTestData = async (supabase: SupabaseClient) => {
     await supabase.from('policies').delete().neq('id', '');
     await supabase.from('users').delete().neq('id', '');
   } catch (error) {
-    console.error('Cleanup error:', error);
-    throw error;
+    throw new Error(`Cleanup failed: ${error}`);
   }
 };

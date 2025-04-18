@@ -15,7 +15,7 @@ interface Policy {
 interface ValidationResult {
   validation_type: string;
   validation_result: string;
-  details?: Record<string, any>;
+  details?: Record<string, string | number | boolean>;
 }
 
 interface ValidationResponse {

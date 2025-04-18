@@ -1,4 +1,4 @@
-import { MCPAuthHandler, MCPAuthError } from '../auth/mcpAuth';
+import { MCPAuthHandler } from '../auth/mcpAuth';
 
 describe('MCPAuthHandler', () => {
   const secretKey = 'test-secret-key';

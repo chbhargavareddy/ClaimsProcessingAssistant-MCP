@@ -23,7 +23,7 @@ describe('MCPServer', () => {
       requestId: 'test-request',
       functionName: 'test-function',
       parameters: { param: 'value' },
-      auth: { token: 'test-token', timestamp: Date.now(), signature: 'test-signature' }
+      auth: { token: 'test-token', timestamp: Date.now(), signature: 'test-signature' },
     };
 
     const response = await server.handleMessage(JSON.stringify(request));
@@ -44,7 +44,7 @@ describe('MCPServer', () => {
       requestId: 'test-request',
       functionName: 'non-existent',
       parameters: {},
-      auth: { token: 'test-token', timestamp: Date.now(), signature: 'test-signature' }
+      auth: { token: 'test-token', timestamp: Date.now(), signature: 'test-signature' },
     };
 
     const response = await server.handleMessage(JSON.stringify(request));
@@ -60,7 +60,7 @@ describe('MCPServer', () => {
       requestId: 'test-request',
       functionName: 'test-function',
       parameters: { param: 123 }, // Wrong type
-      auth: { token: 'test-token', timestamp: Date.now(), signature: 'test-signature' }
+      auth: { token: 'test-token', timestamp: Date.now(), signature: 'test-signature' },
     };
 
     const response = await server.handleMessage(JSON.stringify(request));

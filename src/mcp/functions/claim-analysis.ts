@@ -12,9 +12,7 @@ export const ClaimType = z.enum([
   'other',
 ]);
 
-export const ProcessingPriority = z.enum([
-  'urgent', 'high', 'normal', 'low',
-]);
+export const ProcessingPriority = z.enum(['urgent', 'high', 'normal', 'low']);
 
 export const DocumentType = z.enum([
   'police_report',
@@ -36,16 +34,20 @@ export const ClaimDataSchema = z.object({
   claimant: z.object({
     name: z.string().min(1),
     policyNumber: z.string().min(1),
-    contactInfo: z.object({
-      email: z.string().email().optional(),
-      phone: z.string().optional(),
-    }).optional(),
+    contactInfo: z
+      .object({
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+      })
+      .optional(),
   }),
-  incident: z.object({
-    location: z.string().optional(),
-    time: z.string().optional(),
-    witnesses: z.array(z.string()).optional(),
-  }).optional(),
+  incident: z
+    .object({
+      location: z.string().optional(),
+      time: z.string().optional(),
+      witnesses: z.array(z.string()).optional(),
+    })
+    .optional(),
   previousClaims: z.array(z.string()).optional(),
 });
 
@@ -54,11 +56,13 @@ export const DocumentSchema = z.object({
   content: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   signatures: z.array(z.string()).optional(),
-  metadata: z.object({
-    source: z.string().optional(),
-    verified: z.boolean().optional(),
-    pageCount: z.number().optional(),
-  }).optional(),
+  metadata: z
+    .object({
+      source: z.string().optional(),
+      verified: z.boolean().optional(),
+      pageCount: z.number().optional(),
+    })
+    .optional(),
 });
 
 // Response types
@@ -68,16 +72,20 @@ export const ClaimAnalysisResponse = z.object({
     confidence: z.number().min(0).max(1),
     reasons: z.array(z.string()),
   }),
-  riskFactors: z.array(z.object({
-    type: z.string(),
-    severity: z.enum(['high', 'medium', 'low']),
-    description: z.string(),
-  })),
-  recommendedActions: z.array(z.object({
-    action: z.string(),
-    priority: ProcessingPriority,
-    assignee: z.string().optional(),
-  })),
+  riskFactors: z.array(
+    z.object({
+      type: z.string(),
+      severity: z.enum(['high', 'medium', 'low']),
+      description: z.string(),
+    }),
+  ),
+  recommendedActions: z.array(
+    z.object({
+      action: z.string(),
+      priority: ProcessingPriority,
+      assignee: z.string().optional(),
+    }),
+  ),
   fraudIndicators: z.object({
     score: z.number().min(0).max(1),
     flags: z.array(z.string()),
@@ -173,16 +181,19 @@ const claude = new Anthropic({
 });
 
 // MCP Function Handlers
-export async function analyzeClaimHandler(params: z.infer<typeof AnalyzeClaimSchema>): Promise<z.infer<typeof ClaimAnalysisResponse>> {
+export async function analyzeClaimHandler(
+  params: z.infer<typeof AnalyzeClaimSchema>,
+): Promise<z.infer<typeof ClaimAnalysisResponse>> {
   try {
     const typeSpecificPrompt = getClaimTypePrompt(params.claim.type);
-    
+
     const message = await claude.messages.create({
       model: 'claude-3-sonnet-20240229',
       max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: `As an expert claims processing assistant, analyze this insurance claim:
+      messages: [
+        {
+          role: 'user',
+          content: `As an expert claims processing assistant, analyze this insurance claim:
 ${JSON.stringify(params.claim, null, 2)}
 
 ${typeSpecificPrompt}
@@ -216,7 +227,8 @@ Provide a detailed structured analysis including:
 
 Format the response as a structured JSON object matching this schema:
 ${JSON.stringify(ClaimAnalysisResponse.shape, null, 2)}`,
-      }],
+        },
+      ],
     });
 
     // Parse and validate the response
@@ -231,14 +243,17 @@ ${JSON.stringify(ClaimAnalysisResponse.shape, null, 2)}`,
   }
 }
 
-export async function validateDocumentsHandler(params: z.infer<typeof ValidateDocumentsSchema>): Promise<z.infer<typeof DocumentValidationResponse>> {
+export async function validateDocumentsHandler(
+  params: z.infer<typeof ValidateDocumentsSchema>,
+): Promise<z.infer<typeof DocumentValidationResponse>> {
   try {
     const message = await claude.messages.create({
       model: 'claude-3-sonnet-20240229',
       max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: `As an expert claims processing assistant, validate these claim documents:
+      messages: [
+        {
+          role: 'user',
+          content: `As an expert claims processing assistant, validate these claim documents:
 ${JSON.stringify(params.documents, null, 2)}
 
 Provide a comprehensive validation report including:
@@ -275,7 +290,8 @@ Provide a comprehensive validation report including:
 
 Format the response as a structured JSON object matching this schema:
 ${JSON.stringify(DocumentValidationResponse.shape, null, 2)}`,
-      }],
+        },
+      ],
     });
 
     // Parse and validate the response

@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { ClaimProcessor } from '../../services/claims/processor';
-import { 
-  SubmitClaimDtoSchema, 
+import {
+  SubmitClaimDtoSchema,
   ListClaimsFilterDtoSchema,
-  ClaimResponseDtoSchema
+  ClaimResponseDtoSchema,
 } from '../../types/claim';
 
 const processor = new ClaimProcessor();
@@ -16,22 +16,19 @@ export const submitClaimFunction = {
   returns: z.object({
     claim: ClaimResponseDtoSchema,
     status: z.string(),
-    message: z.string()
+    message: z.string(),
   }),
   async handler(params: z.infer<typeof SubmitClaimDtoSchema>, context: any) {
-    const { claim, workflowResult } = await processor.submitClaim(
-      params,
-      context.user.id
-    );
+    const { claim, workflowResult } = await processor.submitClaim(params, context.user.id);
 
     return {
       claim,
       status: workflowResult.success ? 'success' : 'error',
-      message: workflowResult.success 
+      message: workflowResult.success
         ? 'Claim submitted successfully'
-        : workflowResult.error?.message || 'Failed to submit claim'
+        : workflowResult.error?.message || 'Failed to submit claim',
     };
-  }
+  },
 };
 
 // Validate Claim Function
@@ -39,31 +36,39 @@ export const validateClaimFunction = {
   name: 'validateClaim',
   description: 'Validate an existing claim',
   parameters: z.object({
-    claimId: z.string().uuid()
+    claimId: z.string().uuid(),
   }),
   returns: z.object({
     isValid: z.boolean(),
-    errors: z.array(z.object({
-      field: z.string(),
-      message: z.string()
-    })).optional(),
-    warnings: z.array(z.object({
-      field: z.string(),
-      message: z.string()
-    })).optional(),
-    status: z.string()
+    errors: z
+      .array(
+        z.object({
+          field: z.string(),
+          message: z.string(),
+        }),
+      )
+      .optional(),
+    warnings: z
+      .array(
+        z.object({
+          field: z.string(),
+          message: z.string(),
+        }),
+      )
+      .optional(),
+    status: z.string(),
   }),
   async handler(params: { claimId: string }, context: any) {
     const { validationResult, workflowResult } = await processor.validateClaim(
       params.claimId,
-      context.user.id
+      context.user.id,
     );
 
     return {
       ...validationResult,
-      status: workflowResult.newState || 'unknown'
+      status: workflowResult.newState || 'unknown',
     };
-  }
+  },
 };
 
 // Get Claim Status Function
@@ -71,33 +76,50 @@ export const getClaimStatusFunction = {
   name: 'getClaimStatus',
   description: 'Get the current status of a claim',
   parameters: z.object({
-    claimId: z.string().uuid()
+    claimId: z.string().uuid(),
   }),
   returns: z.object({
     claim: ClaimResponseDtoSchema,
-    validationHistory: z.array(z.object({
-      timestamp: z.string(),
-      isValid: z.boolean(),
-      errors: z.array(z.object({
-        field: z.string(),
-        message: z.string()
-      })).optional(),
-      warnings: z.array(z.object({
-        field: z.string(),
-        message: z.string()
-      })).optional()
-    })).optional(),
-    documents: z.array(z.object({
-      id: z.string(),
-      type: z.string(),
-      status: z.string(),
-      uploaded_at: z.string()
-    })).optional()
+    validationHistory: z
+      .array(
+        z.object({
+          timestamp: z.string(),
+          isValid: z.boolean(),
+          errors: z
+            .array(
+              z.object({
+                field: z.string(),
+                message: z.string(),
+              }),
+            )
+            .optional(),
+          warnings: z
+            .array(
+              z.object({
+                field: z.string(),
+                message: z.string(),
+              }),
+            )
+            .optional(),
+        }),
+      )
+      .optional(),
+    documents: z
+      .array(
+        z.object({
+          id: z.string(),
+          type: z.string(),
+          status: z.string(),
+          uploaded_at: z.string(),
+        }),
+      )
+      .optional(),
   }),
   async handler(params: { claimId: string }, context: any) {
     const { data: claim, error } = await context.supabase
       .from('claims')
-      .select(`
+      .select(
+        `
         *,
         validation_history (
           id,
@@ -112,7 +134,8 @@ export const getClaimStatusFunction = {
           status,
           uploaded_at
         )
-      `)
+      `,
+      )
       .eq('id', params.claimId)
       .single();
 
@@ -123,9 +146,9 @@ export const getClaimStatusFunction = {
     return {
       claim,
       validationHistory: claim.validation_history,
-      documents: claim.documents
+      documents: claim.documents,
     };
-  }
+  },
 };
 
 // List Claims Function
@@ -137,12 +160,10 @@ export const listClaimsFunction = {
     claims: z.array(ClaimResponseDtoSchema),
     total: z.number(),
     page: z.number(),
-    pageSize: z.number()
+    pageSize: z.number(),
   }),
   async handler(params: z.infer<typeof ListClaimsFilterDtoSchema>, context: any) {
-    let query = context.supabase
-      .from('claims')
-      .select('*', { count: 'exact' });
+    let query = context.supabase.from('claims').select('*', { count: 'exact' });
 
     // Apply filters
     if (params.status) {
@@ -175,9 +196,7 @@ export const listClaimsFunction = {
     const pageSize = params.limit || 10;
     const offset = (page - 1) * pageSize;
 
-    query = query
-      .range(offset, offset + pageSize - 1)
-      .order('created_at', { ascending: false });
+    query = query.range(offset, offset + pageSize - 1).order('created_at', { ascending: false });
 
     const { data: claims, count, error } = await query;
 
@@ -189,7 +208,7 @@ export const listClaimsFunction = {
       claims: claims || [],
       total: count || 0,
       page,
-      pageSize
+      pageSize,
     };
-  }
+  },
 };

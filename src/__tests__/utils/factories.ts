@@ -44,7 +44,7 @@ export const createTestUser = (): TestUser => ({
   id: uuidv4(),
   email: `test-${uuidv4()}@example.com`,
   name: 'Test User',
-  created_at: new Date().toISOString()
+  created_at: new Date().toISOString(),
 });
 
 export const createTestPolicy = (holderId: string): TestPolicy => ({
@@ -56,7 +56,7 @@ export const createTestPolicy = (holderId: string): TestPolicy => ({
   start_date: new Date().toISOString(),
   end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
   status: 'ACTIVE',
-  created_at: new Date().toISOString()
+  created_at: new Date().toISOString(),
 });
 
 export const createTestClaim = (userId: string, policyId: string): TestClaim => ({
@@ -67,7 +67,7 @@ export const createTestClaim = (userId: string, policyId: string): TestClaim => 
   description: 'Test claim description',
   amount: 1000,
   status: 'PENDING',
-  created_at: new Date().toISOString()
+  created_at: new Date().toISOString(),
 });
 
 export const createTestValidationHistory = (claimId: string): TestValidationHistory => ({
@@ -76,7 +76,7 @@ export const createTestValidationHistory = (claimId: string): TestValidationHist
   validation_type: 'POLICY_COVERAGE',
   validation_result: 'PASSED',
   details: { message: 'Claim amount within policy coverage' },
-  created_at: new Date().toISOString()
+  created_at: new Date().toISOString(),
 });
 
 export const cleanupTestData = async (supabase: SupabaseClient) => {

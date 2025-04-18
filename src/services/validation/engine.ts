@@ -4,7 +4,7 @@ import {
   ValidationResult,
   ValidationContext,
   ValidationError,
-  ValidationWarning
+  ValidationWarning,
 } from './types';
 
 export class BaseValidationEngine<T> implements ValidationEngine<T> {
@@ -19,12 +19,10 @@ export class BaseValidationEngine<T> implements ValidationEngine<T> {
     const warnings: ValidationWarning[] = [];
 
     // Run all validation rules
-    const results = await Promise.all(
-      this.rules.map(rule => rule.validate(data, context))
-    );
+    const results = await Promise.all(this.rules.map((rule) => rule.validate(data, context)));
 
     // Combine all results
-    results.forEach(result => {
+    results.forEach((result) => {
       errors.push(...result.errors);
       warnings.push(...result.warnings);
     });
@@ -32,7 +30,7 @@ export class BaseValidationEngine<T> implements ValidationEngine<T> {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 }

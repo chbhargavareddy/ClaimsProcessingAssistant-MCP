@@ -53,4 +53,4 @@ export async function submitClaim(
       error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
-} 
+}

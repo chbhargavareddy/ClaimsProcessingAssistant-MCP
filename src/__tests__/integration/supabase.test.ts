@@ -1,6 +1,5 @@
 import { config } from 'dotenv';
 import path from 'path';
-import 'cross-fetch/polyfill'; // Add fetch polyfill for Node.js
 
 // Load test environment variables
 config({ path: path.resolve(process.cwd(), '.env.test') });
@@ -11,15 +10,57 @@ import {
   createTestPolicy,
   createTestClaim,
   createTestValidationHistory,
-  cleanupTestData,
 } from '../utils/factories';
 
-// Mock environment variables
-process.env.NEXT_PUBLIC_SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321';
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
+// Mock Supabase client
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    from: jest.fn((table) => ({
+      insert: jest.fn(() => ({
+        select: jest.fn(() => ({
+          single: jest.fn(() => {
+            switch (table) {
+              case 'users':
+                return Promise.resolve({
+                  data: { id: 'test-user-id', email: 'test@example.com' },
+                  error: null,
+                });
+              case 'policies':
+                return Promise.resolve({
+                  data: { id: 'test-policy-id' },
+                  error: null,
+                });
+              case 'claims':
+                return Promise.resolve({
+                  data: {
+                    id: 'test-claim-id',
+                    user_id: 'test-user-id',
+                    policy_id: 'test-policy-id',
+                    status: 'PENDING',
+                  },
+                  error: null,
+                });
+              case 'validation_history':
+                return Promise.resolve({
+                  data: {
+                    id: 'test-validation-id',
+                    claim_id: 'test-claim-id',
+                  },
+                  error: null,
+                });
+              default:
+                return Promise.resolve({
+                  data: null,
+                  error: new Error(`Unknown table: ${table}`),
+                });
+            }
+          }),
+        })),
+      })),
+      delete: jest.fn(() => Promise.resolve({ error: null })),
+    })),
+  })),
+}));
 
 enum ClaimStatus {
   PENDING = 'PENDING',
@@ -27,19 +68,12 @@ enum ClaimStatus {
   REJECTED = 'REJECTED',
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-);
+const supabase = createClient('mock-url', 'mock-key');
 
 describe('Supabase Integration Tests', () => {
   let testUser: { id: string; email: string };
   let testPolicy: { id: string };
   let testClaim: { id: string };
-
-  beforeAll(async () => {
-    await cleanupTestData(supabase);
-  });
 
   beforeEach(async () => {
     try {
@@ -54,7 +88,7 @@ describe('Supabase Integration Tests', () => {
       if (userError) throw userError;
       testUser = userData;
 
-      // Create test policy using string ID
+      // Create test policy
       const testPolicyData = createTestPolicy(testUser.id);
       const { data: policyData, error: policyError } = await supabase
         .from('policies')
@@ -65,7 +99,7 @@ describe('Supabase Integration Tests', () => {
       if (policyError) throw policyError;
       testPolicy = policyData;
 
-      // Create test claim with both required parameters
+      // Create test claim
       const testClaimData = createTestClaim(testUser.id, testPolicy.id);
       const { data: claimData, error: claimError } = await supabase
         .from('claims')
@@ -79,10 +113,6 @@ describe('Supabase Integration Tests', () => {
       console.error('Setup error:', error);
       throw error;
     }
-  });
-
-  afterEach(async () => {
-    await cleanupTestData(supabase);
   });
 
   describe('Claims Management', () => {

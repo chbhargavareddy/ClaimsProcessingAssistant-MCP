@@ -1,82 +1,279 @@
 import { validateClaim } from '../../../functions/claims/validate-claim';
-
-interface ValidateClaimParams {
-  claimId: string;
-  userId: string;
-}
-
-// Mock Supabase client
-const mockSupabase = {
-  from: jest.fn().mockReturnThis(),
-  insert: jest.fn().mockReturnThis(),
-  select: jest.fn().mockReturnThis(),
-  single: jest.fn(),
-  eq: jest.fn().mockReturnThis(),
-  delete: jest.fn().mockReturnThis(),
-  neq: jest.fn().mockResolvedValue({ data: null, error: null }),
-};
-
-// Mock the createClient function
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => mockSupabase),
-}));
+import { createTestUser, createTestPolicy, createTestClaim } from '../../utils/factories';
 
 // Mock validateClaimRules
 jest.mock('../../../validation/claim-rules', () => ({
-  validateClaimRules: jest.fn().mockResolvedValue({
-    success: true,
-    validations: [
-      {
-        validation_type: 'POLICY_COVERAGE',
-        validation_result: 'PASSED',
-        details: { message: 'Claim amount within policy coverage' },
-      },
-    ],
-  }),
+  validateClaimRules: jest.fn(),
 }));
 
-describe('validateClaim', () => {
-  beforeEach(() => {
-    // Reset all mocks
-    jest.clearAllMocks();
-  });
+import { validateClaimRules } from '../../../validation/claim-rules';
 
-  it('should validate a claim successfully', async () => {
-    const claimData: ValidateClaimParams = {
-      claimId: 'test-claim-id',
-      userId: 'test-user-id',
+describe('validateClaim', () => {
+  let testUser: ReturnType<typeof createTestUser>;
+  let testPolicy: ReturnType<typeof createTestPolicy>;
+  let testClaim: ReturnType<typeof createTestClaim>;
+  let supabase: any;
+
+  beforeEach(() => {
+    testUser = createTestUser();
+    testPolicy = createTestPolicy(testUser.id);
+    testClaim = createTestClaim(testUser.id, testPolicy.id);
+
+    // Reset supabase mock
+    supabase = {
+      from: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn(),
+      insert: jest.fn(),
     };
 
+    // Reset validateClaimRules mock
+    (validateClaimRules as jest.Mock).mockReset();
+  });
+
+  it('should successfully validate a claim within policy coverage', async () => {
     // Mock successful claim fetch
-    mockSupabase.single.mockResolvedValueOnce({
+    supabase.single.mockResolvedValueOnce({
       data: {
-        id: claimData.claimId,
-        user_id: claimData.userId,
-        policy_id: 'test-policy-id',
-        status: 'PENDING',
-        claim_amount: 1000,
-        policy_number: 'TEST-POL-123',
+        ...testClaim,
+        amount: 5000,
       },
       error: null,
+    });
+
+    // Mock successful validation
+    const mockValidations = [
+      {
+        type: 'POLICY_COVERAGE',
+        result: 'PASSED',
+        details: {
+          message: 'Claim amount within policy coverage',
+          claim_amount: 5000,
+          coverage_amount: 10000,
+        },
+      },
+    ];
+
+    (validateClaimRules as jest.Mock).mockResolvedValueOnce({
+      success: true,
+      validations: mockValidations,
     });
 
     // Mock successful validation history insert
-    mockSupabase.insert.mockResolvedValueOnce({
-      data: [{ id: 'test-validation-id' }],
+    supabase.insert.mockResolvedValueOnce({
+      data: null,
       error: null,
     });
 
-    const result = await validateClaim(claimData, mockSupabase as any);
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
 
-    // Verify the mock was called correctly
-    expect(mockSupabase.from).toHaveBeenCalledWith('claims');
-    expect(mockSupabase.select).toHaveBeenCalled();
-    expect(mockSupabase.eq).toHaveBeenCalledWith('id', claimData.claimId);
-    expect(mockSupabase.eq).toHaveBeenCalledWith('user_id', claimData.userId);
-
-    // Verify the result
     expect(result.success).toBe(true);
-    expect(result.validations).toBeDefined();
-    expect(result.validations.length).toBeGreaterThan(0);
+    expect(result.validations).toEqual(mockValidations);
+    expect(supabase.from).toHaveBeenCalledWith('claims');
+    expect(supabase.eq).toHaveBeenCalledWith('id', testClaim.id);
+    expect(supabase.eq).toHaveBeenCalledWith('user_id', testUser.id);
+    expect(validateClaimRules).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 5000 }),
+      supabase,
+    );
+  });
+
+  it('should fail validation when claim amount exceeds policy coverage', async () => {
+    // Mock successful claim fetch
+    supabase.single.mockResolvedValueOnce({
+      data: {
+        ...testClaim,
+        amount: 15000,
+      },
+      error: null,
+    });
+
+    // Mock failed validation due to coverage
+    const mockValidations = [
+      {
+        type: 'POLICY_COVERAGE',
+        result: 'FAILED',
+        details: {
+          message: 'Claim amount exceeds policy coverage',
+          claim_amount: 15000,
+          coverage_amount: 10000,
+          policy_status: 'ACTIVE',
+        },
+      },
+    ];
+
+    (validateClaimRules as jest.Mock).mockResolvedValueOnce({
+      success: false,
+      validations: mockValidations,
+    });
+
+    // Mock successful validation history insert
+    supabase.insert.mockResolvedValueOnce({
+      data: null,
+      error: null,
+    });
+
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.validations).toEqual(mockValidations);
+  });
+
+  it('should fail validation when policy is not active', async () => {
+    // Mock successful claim fetch
+    supabase.single.mockResolvedValueOnce({
+      data: {
+        ...testClaim,
+        amount: 5000,
+      },
+      error: null,
+    });
+
+    // Mock failed validation due to inactive policy
+    const mockValidations = [
+      {
+        type: 'POLICY_COVERAGE',
+        result: 'FAILED',
+        details: {
+          message: 'Policy is not active',
+          claim_amount: 5000,
+          coverage_amount: 10000,
+          policy_status: 'INACTIVE',
+        },
+      },
+    ];
+
+    (validateClaimRules as jest.Mock).mockResolvedValueOnce({
+      success: false,
+      validations: mockValidations,
+    });
+
+    // Mock successful validation history insert
+    supabase.insert.mockResolvedValueOnce({
+      data: null,
+      error: null,
+    });
+
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.validations).toEqual(mockValidations);
+  });
+
+  it('should handle policy fetch error', async () => {
+    // Mock successful claim fetch
+    supabase.single.mockResolvedValueOnce({
+      data: testClaim,
+      error: null,
+    });
+
+    // Mock policy fetch error
+    (validateClaimRules as jest.Mock).mockResolvedValueOnce({
+      success: false,
+      validations: [],
+      error: 'Failed to fetch policy: Policy not found',
+    });
+
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.validations).toEqual([]);
+    expect(result.error).toBe('Failed to fetch policy: Policy not found');
+  });
+
+  it('should handle claim fetch error', async () => {
+    // Mock claim fetch error
+    supabase.single.mockResolvedValueOnce({
+      data: null,
+      error: new Error('Claim not found'),
+    });
+
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.validations).toEqual([]);
+    expect(result.error).toBe('Failed to fetch claim: Claim not found');
+    expect(validateClaimRules).not.toHaveBeenCalled();
+  });
+
+  it('should handle validation history storage error', async () => {
+    // Mock successful claim fetch
+    supabase.single.mockResolvedValueOnce({
+      data: testClaim,
+      error: null,
+    });
+
+    // Mock successful validation with results
+    const mockValidations = [
+      {
+        type: 'POLICY_COVERAGE',
+        result: 'FAILED',
+        details: { message: 'Claim amount exceeds policy coverage' },
+      },
+    ];
+
+    (validateClaimRules as jest.Mock).mockResolvedValueOnce({
+      success: false,
+      validations: mockValidations,
+    });
+
+    // Mock validation history storage error
+    supabase.insert.mockResolvedValueOnce({
+      data: null,
+      error: new Error('Database error'),
+    });
+
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.validations).toEqual([]);
+    expect(result.error).toBe('Failed to store validation history: Database error');
+  });
+
+  it('should handle unexpected errors', async () => {
+    // Mock unexpected error during claim fetch
+    supabase.single.mockImplementation(() => {
+      throw new Error('Network error');
+    });
+
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.validations).toEqual([]);
+    expect(result.error).toBe('Validation error: Network error');
+  });
+
+  it('should handle non-Error objects in catch block', async () => {
+    // Mock throwing a non-Error object
+    supabase.single.mockImplementation(() => {
+      throw 'Something went wrong';
+    });
+
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.validations).toEqual([]);
+    expect(result.error).toBe('Validation error: Unknown error');
+  });
+
+  it('should skip validation history storage if no validations', async () => {
+    // Mock successful claim fetch
+    supabase.single.mockResolvedValueOnce({
+      data: testClaim,
+      error: null,
+    });
+
+    // Mock validation with no results
+    (validateClaimRules as jest.Mock).mockResolvedValueOnce({
+      success: true,
+      validations: [],
+    });
+
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
+
+    expect(result.success).toBe(true);
+    expect(result.validations).toEqual([]);
+    expect(supabase.insert).not.toHaveBeenCalled();
   });
 });

@@ -32,10 +32,13 @@ describe('validateClaim', () => {
     (validateClaimRules as jest.Mock).mockReset();
   });
 
-  it('should successfully validate a claim', async () => {
+  it('should successfully validate a claim within policy coverage', async () => {
     // Mock successful claim fetch
     supabase.single.mockResolvedValueOnce({
-      data: testClaim,
+      data: {
+        ...testClaim,
+        amount: 5000,
+      },
       error: null,
     });
 
@@ -44,7 +47,11 @@ describe('validateClaim', () => {
       {
         type: 'POLICY_COVERAGE',
         result: 'PASSED',
-        details: { message: 'Claim amount within policy coverage' },
+        details: {
+          message: 'Claim amount within policy coverage',
+          claim_amount: 5000,
+          coverage_amount: 10000,
+        },
       },
     ];
 
@@ -66,7 +73,113 @@ describe('validateClaim', () => {
     expect(supabase.from).toHaveBeenCalledWith('claims');
     expect(supabase.eq).toHaveBeenCalledWith('id', testClaim.id);
     expect(supabase.eq).toHaveBeenCalledWith('user_id', testUser.id);
-    expect(validateClaimRules).toHaveBeenCalledWith(testClaim, supabase);
+    expect(validateClaimRules).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 5000 }),
+      supabase,
+    );
+  });
+
+  it('should fail validation when claim amount exceeds policy coverage', async () => {
+    // Mock successful claim fetch
+    supabase.single.mockResolvedValueOnce({
+      data: {
+        ...testClaim,
+        amount: 15000,
+      },
+      error: null,
+    });
+
+    // Mock failed validation due to coverage
+    const mockValidations = [
+      {
+        type: 'POLICY_COVERAGE',
+        result: 'FAILED',
+        details: {
+          message: 'Claim amount exceeds policy coverage',
+          claim_amount: 15000,
+          coverage_amount: 10000,
+          policy_status: 'ACTIVE',
+        },
+      },
+    ];
+
+    (validateClaimRules as jest.Mock).mockResolvedValueOnce({
+      success: false,
+      validations: mockValidations,
+    });
+
+    // Mock successful validation history insert
+    supabase.insert.mockResolvedValueOnce({
+      data: null,
+      error: null,
+    });
+
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.validations).toEqual(mockValidations);
+  });
+
+  it('should fail validation when policy is not active', async () => {
+    // Mock successful claim fetch
+    supabase.single.mockResolvedValueOnce({
+      data: {
+        ...testClaim,
+        amount: 5000,
+      },
+      error: null,
+    });
+
+    // Mock failed validation due to inactive policy
+    const mockValidations = [
+      {
+        type: 'POLICY_COVERAGE',
+        result: 'FAILED',
+        details: {
+          message: 'Policy is not active',
+          claim_amount: 5000,
+          coverage_amount: 10000,
+          policy_status: 'INACTIVE',
+        },
+      },
+    ];
+
+    (validateClaimRules as jest.Mock).mockResolvedValueOnce({
+      success: false,
+      validations: mockValidations,
+    });
+
+    // Mock successful validation history insert
+    supabase.insert.mockResolvedValueOnce({
+      data: null,
+      error: null,
+    });
+
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.validations).toEqual(mockValidations);
+  });
+
+  it('should handle policy fetch error', async () => {
+    // Mock successful claim fetch
+    supabase.single.mockResolvedValueOnce({
+      data: testClaim,
+      error: null,
+    });
+
+    // Mock policy fetch error
+    (validateClaimRules as jest.Mock).mockResolvedValueOnce({
+      success: false,
+      validations: [],
+      error: 'Failed to fetch policy: Policy not found',
+    });
+
+    const result = await validateClaim({ claimId: testClaim.id, userId: testUser.id }, supabase);
+
+    expect(result.success).toBe(false);
+    expect(result.validations).toEqual([]);
+    expect(result.error).toBe('Failed to fetch policy: Policy not found');
   });
 
   it('should handle claim fetch error', async () => {

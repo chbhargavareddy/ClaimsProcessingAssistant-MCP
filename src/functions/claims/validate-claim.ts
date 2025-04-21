@@ -36,6 +36,15 @@ export async function validateClaim(
     // Validate claim rules
     const validationResult = await validateClaimRules(claim, supabase);
 
+    // If there's an error from validation rules, return it immediately
+    if (validationResult.error) {
+      return {
+        success: false,
+        validations: [],
+        error: validationResult.error,
+      };
+    }
+
     // Store validation history
     if (validationResult.validations.length > 0) {
       const { error: historyError } = await supabase.from('validation_history').insert(

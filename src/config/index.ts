@@ -14,6 +14,7 @@ export const config = {
   JWT_SECRET: process.env.JWT_SECRET || '',
   PORT: parseInt(process.env.PORT || '3000', 10),
   NODE_ENV: process.env.NODE_ENV || 'development',
+  REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
 } as const;
 
 type ConfigKey = keyof typeof config;

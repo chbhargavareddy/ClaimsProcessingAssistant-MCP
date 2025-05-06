@@ -2,8 +2,8 @@ import Redis from 'ioredis';
 import { config } from '../../config';
 
 export interface RateLimitConfig {
-  points: number;        // Number of requests allowed
-  duration: number;      // Time window in seconds
+  points: number; // Number of requests allowed
+  duration: number; // Time window in seconds
   blockDuration?: number; // How long to block if limit exceeded (optional)
 }
 
@@ -50,7 +50,7 @@ export class RateLimitService {
     // Set expiry on the set
     multi.expire(key, config.duration);
 
-    const [, currentCount] = await multi.exec() as [any, [null, number]];
+    const [, currentCount] = (await multi.exec()) as [any, [null, number]];
     const count = currentCount[1];
 
     if (count >= config.points) {
@@ -61,11 +61,7 @@ export class RateLimitService {
 
       if (config.blockDuration) {
         // If block duration specified, block for that duration
-        await this.redis.setex(
-          `${key}:blocked`,
-          config.blockDuration,
-          'blocked',
-        );
+        await this.redis.setex(`${key}:blocked`, config.blockDuration, 'blocked');
       }
 
       return {
@@ -97,4 +93,4 @@ export class RateLimitService {
     const key = this.generateKey(identifier, action);
     await this.redis.del(key, `${key}:blocked`);
   }
-} 
+}

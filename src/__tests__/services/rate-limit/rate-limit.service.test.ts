@@ -7,7 +7,6 @@ jest.mock('ioredis');
 describe('RateLimitService', () => {
   let rateLimitService: RateLimitService;
   let mockRedis: jest.Mocked<Redis>;
-  const TEST_TIMEOUT = 10000; // 10 seconds
 
   beforeEach(() => {
     // Clear all mocks
@@ -62,7 +61,7 @@ describe('RateLimitService', () => {
     ]);
 
     const result = await rateLimitService.checkLimit('test-user', 'test-action', testConfig);
-    
+
     expect(result.isAllowed).toBe(true);
     expect(result.remaining).toBe(2); // points(3) - current requests(1) = 2
     expect(result.resetTime).toBeDefined();
@@ -103,7 +102,7 @@ describe('RateLimitService', () => {
 
     // Try one more request
     const result = await rateLimitService.checkLimit('test-user', 'test-action', testConfig);
-    
+
     expect(result.isAllowed).toBe(false);
     expect(result.remaining).toBe(0);
     expect(result.retryAfter).toBeDefined();
@@ -112,67 +111,63 @@ describe('RateLimitService', () => {
 
   it('should track different actions separately', async () => {
     // Mock Redis responses for different actions
-    mockRedis.exec
-      .mockResolvedValueOnce([
-        [null, 1],
-        [null, 1], // action1 has 1 request
-        [null, 1],
-        [null, 1],
-      ]);
+    mockRedis.exec.mockResolvedValueOnce([
+      [null, 1],
+      [null, 1], // action1 has 1 request
+      [null, 1],
+      [null, 1],
+    ]);
 
     // Should allow requests for different action
     const result = await rateLimitService.checkLimit('test-user', 'action2', testConfig);
-    
+
     expect(result.isAllowed).toBe(true);
     expect(result.remaining).toBe(2);
   });
 
   it('should track different users separately', async () => {
     // Mock Redis responses for different users
-    mockRedis.exec
-      .mockResolvedValueOnce([
-        [null, 1],
-        [null, 1], // user2 has 1 request
-        [null, 1],
-        [null, 1],
-      ]);
+    mockRedis.exec.mockResolvedValueOnce([
+      [null, 1],
+      [null, 1], // user2 has 1 request
+      [null, 1],
+      [null, 1],
+    ]);
 
     // Should allow requests for different user
     const result = await rateLimitService.checkLimit('user2', 'test-action', testConfig);
-    
+
     expect(result.isAllowed).toBe(true);
     expect(result.remaining).toBe(2);
   });
 
   it('should clear limits when requested', async () => {
     // Mock Redis responses
-    mockRedis.exec
-      .mockResolvedValueOnce([
-        [null, 1],
-        [null, 1], // One request after clearing
-        [null, 1],
-        [null, 1],
-      ]);
+    mockRedis.exec.mockResolvedValueOnce([
+      [null, 1],
+      [null, 1], // One request after clearing
+      [null, 1],
+      [null, 1],
+    ]);
 
     // Clear the limit
     await rateLimitService.clearLimit('test-user', 'test-action');
 
     // Should be able to make requests again
     const result = await rateLimitService.checkLimit('test-user', 'test-action', testConfig);
-    
+
     expect(result.isAllowed).toBe(true);
     expect(result.remaining).toBe(2);
   });
 
   it('should handle block duration correctly', async () => {
     // Mock Redis responses
-    mockRedis.exec
-      .mockResolvedValueOnce([
-        [null, 1],
-        [null, 4], // More requests than allowed
-        [null, 1],
-        [null, 1],
-      ]);
+    mockRedis.exec.mockResolvedValueOnce([
+      [null, 1],
+      [null, 4], // More requests than allowed
+      [null, 1],
+      [null, 1],
+    ]);
 
     // Verify blocked state
     const result = await rateLimitService.checkLimit('test-user', 'test-action', testConfig);
@@ -190,16 +185,19 @@ describe('RateLimitService', () => {
     };
 
     // Mock Redis responses
-    mockRedis.exec
-      .mockResolvedValueOnce([
-        [null, 1],
-        [null, 3], // More requests than allowed
-        [null, 1],
-        [null, 1],
-      ]);
+    mockRedis.exec.mockResolvedValueOnce([
+      [null, 1],
+      [null, 3], // More requests than allowed
+      [null, 1],
+      [null, 1],
+    ]);
 
     // Verify rate limited state
-    const result = await rateLimitService.checkLimit('test-user', 'test-action', configWithoutBlock);
+    const result = await rateLimitService.checkLimit(
+      'test-user',
+      'test-action',
+      configWithoutBlock,
+    );
     expect(result.isAllowed).toBe(false);
     expect(result.remaining).toBe(0);
     expect(result.resetTime).toBeDefined();
@@ -232,7 +230,7 @@ describe('RateLimitService', () => {
     const results = await Promise.all(requests);
 
     // Verify results maintain rate limit
-    const allowedCount = results.filter(r => r.isAllowed).length;
+    const allowedCount = results.filter((r) => r.isAllowed).length;
     expect(allowedCount).toBeLessThanOrEqual(concurrentConfig.points);
   });
 
@@ -241,7 +239,7 @@ describe('RateLimitService', () => {
     mockRedis.exec.mockRejectedValueOnce(new Error('Redis connection error'));
 
     await expect(
-      rateLimitService.checkLimit('test-user', 'test-action', testConfig)
+      rateLimitService.checkLimit('test-user', 'test-action', testConfig),
     ).rejects.toThrow('Redis connection error');
   });
-}); 
+});

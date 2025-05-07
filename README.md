@@ -1,90 +1,154 @@
-# Claims Processing Assistant MCP Server
+# ClaimsProcessingAssistant MCP Server
 
-This is a Model Context Protocol (MCP) server that provides claims processing capabilities through integration with a Supabase database. The server enables AI assistants to interact with insurance claim processing workflows and data through natural language.
+![Project Workflow Diagram](https://www.mermaidchart.com/raw/65626e98-53d4-4eef-a216-e192583e3ca3?theme=light&version=v0.1&format=svg)
 
-## Features
+## 🚀 Overview
 
-- Claims validation and processing
-- Document management and storage
-- Policy rule enforcement
-- Audit trail tracking
-- Integration with Supabase backend
+ClaimsProcessingAssistant MCP Server is a robust, TypeScript-based backend for managing insurance claims using the MCP protocol. It features advanced validation, document analysis (AI-powered), Supabase integration, Redis caching, and comprehensive error handling—designed for scalability, security, and extensibility.
 
-## Prerequisites
+---
 
-- Node.js (v16 or higher)
-- npm or yarn
-- Supabase account and project
-- Git
+## ✨ Features
 
-## Setup Instructions
+- **MCP Protocol Implementation**: Standardized claim processing API.
+- **Authentication & Authorization**: Secure access for users and services.
+- **Advanced Claim Validation**: Rules engine for policy, duplicate, high-value, and document checks.
+- **AI Document Analysis**: Integrates with Claude for intelligent document validation.
+- **Supabase Integration**: Modern, scalable Postgres backend.
+- **Redis Caching**: Fast access to frequent queries and rate limiting.
+- **Audit Trail**: Full traceability of claim actions.
+- **Comprehensive Testing**: Unit, integration, and end-to-end tests.
+- **CI/CD Ready**: GitHub Actions for automated testing and deployment.
 
-1. Clone the repository:
+---
 
-   ```bash
-   git clone https://github.com/yourusername/ClaimsProcessingAssistant-MCP.git
-   cd ClaimsProcessingAssistant-MCP
-   ```
+## 🏗️ Architecture
 
-2. Install dependencies:
+```mermaid
+flowchart TD
+    A[User/API Client] -->|Submits Claim| B(MCP Server)
+    B --> C{Authentication}
+    C -- Valid --> D[Claim Validation Engine]
+    C -- Invalid --> Z1[Return Auth Error]
+    D --> E{Validation Rules}
+    E -->|Pass| F[Store Claim in DB (Supabase)]
+    E -->|Fail| Z2[Return Validation Errors]
+    F --> G[Trigger Workflow Engine]
+    G --> H[Document Validation (Claude/AI)]
+    H --> I[Audit Trail Logging]
+    I --> J[Update Claim Status]
+    J --> K[Cache Results (Redis)]
+    K --> L[Return Response to User]
+    L -->|Get Status/List Claims| M[Read from Cache/DB]
+    M --> L
+    L -->|Error| Z3[Error Reporting & Monitoring]
+```
 
-   ```bash
-   npm install
-   ```
+---
 
-3. Configure environment variables:
+## 📦 Project Structure
 
-   - Copy `.env.example` to `.env`
-   - Update the following variables in `.env`:
-     - `SUPABASE_URL`: Your Supabase project URL
-     - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
+```
+ClaimsProcessingAssistant-MCP/
+├── src/
+│   ├── auth/                # Authentication logic
+│   ├── config/              # Configuration and environment
+│   ├── functions/           # MCP protocol functions (submit, validate, etc.)
+│   ├── services/            # Business logic, cache, AI, rate limiting
+│   ├── mcp/                 # Protocol handler, function registry
+│   ├── validation/          # Validation rules and helpers
+│   └── server/              # Server entrypoint
+├── __tests__/               # Unit and integration tests
+├── scripts/                 # Utility scripts
+├── dist/                    # Compiled output
+├── Dockerfile
+├── package.json
+├── README.md
+└── ...
+```
 
-4. Build the project:
-   ```bash
-   npm run build
-   ```
+---
 
-## Running the Server
+## ⚡ Getting Started
 
-### Development Mode
+### Prerequisites
+
+- Node.js (v18+ recommended)
+- Docker (for local development)
+- Supabase account (or local Postgres)
+- Redis instance
+
+### Setup
 
 ```bash
+git clone https://github.com/your-org/ClaimsProcessingAssistant-MCP.git
+cd ClaimsProcessingAssistant-MCP
+npm install
+cp .env.example .env
+# Edit .env with your Supabase/Redis credentials
+```
+
+### Running Locally
+
+```bash
+# Start services (if using Docker)
+docker-compose up -d
+
+# Start the server
 npm run dev
 ```
 
-### Production Mode
+### Running Tests
 
 ```bash
-npm run build
-npm start
+npm run test
 ```
 
-## Available Scripts
+---
 
-- `npm run build` - Build the TypeScript project
-- `npm run start` - Start the production server
-- `npm run dev` - Run the development server with hot-reload
-- `npm run test` - Run tests
-- `npm run lint` - Check code style
-- `npm run lint:fix` - Fix code style issues
-- `npm run format` - Format code with Prettier
+## 🛠️ Usage
 
-## Project Structure
+- **API Endpoints**: See [API Documentation](./docs/API.md) (or describe main endpoints here)
+- **Submitting a Claim**: `POST /api/claims/submit`
+- **Validating a Claim**: `POST /api/claims/validate`
+- **Getting Claim Status**: `GET /api/claims/:id/status`
+- **Listing Claims**: `GET /api/claims?filter=...`
 
-- `src/` - Source code
-- `dist/` - Compiled JavaScript code
-- `tests/` - Test files
-- `.env` - Environment variables
-- `tsconfig.json` - TypeScript configuration
+---
 
-## Contributing
+## 🧪 Testing & Quality
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- **Unit tests**: `npm run test`
+- **Linting**: `npm run lint`
+- **Coverage**: `npm run coverage`
+- **CI/CD**: Automated via GitHub Actions
 
-## License
+---
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 🤝 Contributing
+
+1. Fork the repo and create your branch (`git checkout -b feature/your-feature`)
+2. Make your changes and add tests
+3. Run lint and tests before committing
+4. Submit a pull request!
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for more details.
+
+---
+
+## 📝 License
+
+MIT License. See [LICENSE](./LICENSE) for details.
+
+---
+
+## 🙋 FAQ / Support
+
+- **Issues**: [GitHub Issues](https://github.com/your-org/ClaimsProcessingAssistant-MCP/issues)
+- **Contact**: Open an issue or PR for questions and suggestions.
+
+---
+
+**Happy Claim Processing!**
+
+> _Tip: Update links, diagram paths, and add badges (build, coverage, etc.) as needed for your repo._

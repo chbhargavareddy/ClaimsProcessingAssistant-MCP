@@ -1,8 +1,8 @@
 # ClaimsProcessingAssistant MCP Server
 
-![Project Workflow Diagram](https://www.mermaidchart.com/raw/65626e98-53d4-4eef-a216-e192583e3ca3?theme=light&version=v0.1&format=svg)
+![Project Workflow Diagram](ClaimsProcessingAssistant-MCP/images/Editor%20%7C%20Mermaid%20Chart-2025-05-07-201323.svg)
 
-## 🚀 Overview
+## 🚀 Project Overview
 
 ClaimsProcessingAssistant MCP Server is a robust, TypeScript-based backend for managing insurance claims using the MCP protocol. It features advanced validation, document analysis (AI-powered), Supabase integration, Redis caching, and comprehensive error handling—designed for scalability, security, and extensibility.
 

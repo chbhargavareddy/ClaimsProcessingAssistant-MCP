@@ -1,6 +1,6 @@
 # ClaimsProcessingAssistant MCP Server
 
-![Project Workflow Diagram](ClaimsProcessingAssistant-MCP/images/Editor%20%7C%20Mermaid%20Chart-2025-05-07-201323.svg)
+![Project Workflow Diagram](images/workflow-diagram.png)
 
 ## 🚀 Project Overview
 
@@ -26,22 +26,22 @@ ClaimsProcessingAssistant MCP Server is a robust, TypeScript-based backend for m
 
 ```mermaid
 flowchart TD
-    A[User/API Client] -->|Submits Claim| B(MCP Server)
+    A[User/API Client] -->|Submit Claim| B[MCP Server]
     B --> C{Authentication}
-    C -- Valid --> D[Claim Validation Engine]
-    C -- Invalid --> Z1[Return Auth Error]
+    C -- Valid --> D[Validation Engine]
+    C -- Invalid --> Z1[Auth Error]
     D --> E{Validation Rules}
-    E -->|Pass| F[Store Claim in DB (Supabase)]
-    E -->|Fail| Z2[Return Validation Errors]
-    F --> G[Trigger Workflow Engine]
-    G --> H[Document Validation (Claude/AI)]
-    H --> I[Audit Trail Logging]
-    I --> J[Update Claim Status]
-    J --> K[Cache Results (Redis)]
-    K --> L[Return Response to User]
-    L -->|Get Status/List Claims| M[Read from Cache/DB]
+    E -- Pass --> F[Store in DB]
+    E -- Fail --> Z2[Validation Errors]
+    F --> G[Workflow Engine]
+    G --> H[AI Doc Validation]
+    H --> I[Audit Trail]
+    I --> J[Update Status]
+    J --> K[Cache Results]
+    K --> L[Return Response]
+    L -->|Get Status/List| M[Read Cache/DB]
     M --> L
-    L -->|Error| Z3[Error Reporting & Monitoring]
+    L -->|Error| Z3[Error Reporting]
 ```
 
 ---
@@ -64,7 +64,8 @@ ClaimsProcessingAssistant-MCP/
 ├── Dockerfile
 ├── package.json
 ├── README.md
-└── ...
+└── images/
+    └── workflow-diagram.png
 ```
 
 ---
